@@ -5,70 +5,83 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
 import { Alert, Share, View } from 'react-native';
 
-import { Button, Input, Screen, Segmented, Surface, T } from '@/components/ui';
+import { Button, Input, Screen, Segmented, Select, Surface, T } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { CARD_LANGUAGES, useI18n } from '@/i18n';
 import { buildPrompt, type CardTypes } from '@/lib/prompt';
 import { importFromClipboard } from '@/transfer';
 
 export default function AiPromptScreen() {
   const db = useSQLiteContext();
+  const theme = useTheme();
+  const i18n = useI18n();
+  const { t, lang } = i18n;
   const [topic, setTopic] = useState('');
   const [deckName, setDeckName] = useState('');
   const [count, setCount] = useState('20');
   const [types, setTypes] = useState<CardTypes>('both');
-  const [language, setLanguage] = useState('English');
+  // Default to the app language; the prompt itself always names the language in English.
+  const [language, setLanguage] = useState(CARD_LANGUAGES.find((l) => l.lang === lang)?.value ?? 'English');
   const [notes, setNotes] = useState('');
 
   const n = Number.parseInt(count, 10);
   const ready = topic.trim() !== '' && deckName.trim() !== '' && n > 0 && n <= 200;
-  const prompt = () =>
-    buildPrompt({ topic: topic.trim(), deckName: deckName.trim(), count: n, types, language: language.trim() || 'English', notes });
+  const prompt = () => buildPrompt({ topic: topic.trim(), deckName: deckName.trim(), count: n, types, language, notes });
 
   const copy = async () => {
     await Clipboard.setStringAsync(prompt());
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert('Prompt copied', 'Paste it into ChatGPT or Claude, copy the JSON answer, then tap "Import the answer".');
+    Alert.alert(t('ai.copiedTitle'), t('ai.copiedText'));
   };
 
   const importAnswer = async () => {
     try {
-      if (await importFromClipboard(db)) router.back();
+      if (await importFromClipboard(db, i18n)) router.back();
     } catch (e) {
-      Alert.alert('Import failed', (e as Error).message);
+      Alert.alert(t('ai.importFailed'), (e as Error).message);
     }
   };
 
   return (
     <Screen>
-      <Input label="Topic" value={topic} onChangeText={setTopic} placeholder="e.g. Derivatives of usual functions" />
-      <Input label="Deck name" value={deckName} onChangeText={setDeckName} placeholder="e.g. Calculus — Chapter 2" />
+      <Input label={t('ai.topic')} value={topic} onChangeText={setTopic} placeholder={t('ai.topicPlaceholder')} />
+      <Input label={t('ai.deckName')} value={deckName} onChangeText={setDeckName} placeholder={t('ai.deckPlaceholder')} />
       <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-        <View style={{ flex: 1 }}>
-          <Input label="Number of cards" value={count} onChangeText={setCount} keyboardType="number-pad" />
+        <View style={{ flex: 2 }}>
+          <Select label={t('ai.language')} value={language} options={CARD_LANGUAGES} onChange={setLanguage} />
         </View>
         <View style={{ flex: 1 }}>
-          <Input label="Language" value={language} onChangeText={setLanguage} />
+          <Input label={t('ai.count')} value={count} onChangeText={setCount} keyboardType="number-pad" />
         </View>
       </View>
       <View style={{ gap: Spacing.xs }}>
-        <T variant="label">Card types</T>
+        <T variant="label">{t('ai.types')}</T>
         <Segmented
           value={types}
           onChange={setTypes}
           options={[
-            { value: 'qa', label: 'Q / A' },
-            { value: 'cloze', label: 'Cloze' },
-            { value: 'both', label: 'Both' },
+            { value: 'qa', label: t('ai.typeQa') },
+            { value: 'cloze', label: t('ai.typeCloze') },
+            { value: 'both', label: t('ai.typeBoth') },
           ]}
         />
       </View>
-      <Input label="Course notes (optional)" value={notes} onChangeText={setNotes} multiline placeholder="Paste your notes here" />
-      <Button title="Copy prompt" onPress={copy} disabled={!ready} />
-      <Button title="Share prompt" variant="secondary" disabled={!ready} onPress={() => Share.share({ message: prompt() })} />
-      <Surface>
-        <T variant="heading">Then</T>
-        <T variant="caption">Copy the AI&apos;s whole answer and import it. Code fences and surrounding text are ignored.</T>
-        <Button title="Import the answer from clipboard" onPress={importAnswer} />
+      <Input
+        label={t('ai.notes')}
+        value={notes}
+        onChangeText={setNotes}
+        multiline
+        placeholder={t('ai.notesPlaceholder')}
+      />
+      <Button title={t('ai.copy')} onPress={copy} disabled={!ready} />
+      <Button title={t('ai.share')} variant="secondary" disabled={!ready} onPress={() => Share.share({ message: prompt() })} />
+      <Surface tint={theme.accent}>
+        <T variant="heading" color={theme.accent}>
+          {t('ai.then')}
+        </T>
+        <T variant="caption">{t('ai.thenText')}</T>
+        <Button title={t('ai.import')} onPress={importAnswer} />
       </Surface>
     </Screen>
   );

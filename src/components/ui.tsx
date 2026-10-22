@@ -4,6 +4,7 @@ import { useCallback, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,7 +18,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type TextVariant = 'title' | 'heading' | 'body' | 'caption' | 'label';
@@ -33,7 +34,11 @@ export function Screen({ title, children, scroll = true }: { title?: string; chi
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const padding = { padding: Spacing.lg, paddingTop: title ? insets.top + Spacing.lg : Spacing.lg, gap: Spacing.lg };
-  const header = title ? <T variant="title">{title}</T> : null;
+  const header = title ? (
+    <T variant="title" color={theme.primary}>
+      {title}
+    </T>
+  ) : null;
   if (!scroll) {
     return (
       <View style={[{ flex: 1, backgroundColor: theme.background }, padding]}>
@@ -53,11 +58,13 @@ export function Screen({ title, children, scroll = true }: { title?: string; chi
   );
 }
 
-export function Surface({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+/** Card container. `tint` gives it a soft colored background and border instead of the neutral surface. */
+export function Surface({ children, style, tint }: { children: ReactNode; style?: StyleProp<ViewStyle>; tint?: string }) {
   const theme = useTheme();
-  return (
-    <View style={[styles.surface, { backgroundColor: theme.surface, borderColor: theme.border }, style]}>{children}</View>
-  );
+  const colors = tint
+    ? { backgroundColor: withAlpha(tint, 0.12), borderColor: withAlpha(tint, 0.35) }
+    : { backgroundColor: theme.surface, borderColor: theme.border };
+  return <View style={[styles.surface, colors, style]}>{children}</View>;
 }
 
 type ButtonProps = {
@@ -70,8 +77,8 @@ type ButtonProps = {
 
 export function Button({ title, onPress, variant = 'primary', disabled, style }: ButtonProps) {
   const theme = useTheme();
-  const bg = variant === 'primary' ? theme.primary : variant === 'danger' ? theme.danger : theme.muted;
-  const fg = variant === 'secondary' ? theme.text : theme.onPrimary;
+  const bg = variant === 'primary' ? theme.primary : variant === 'danger' ? theme.danger : theme.primarySoft;
+  const fg = variant === 'secondary' ? theme.primary : theme.onPrimary;
   return (
     <Pressable
       accessibilityRole="button"
@@ -107,17 +114,19 @@ export function Input(props: TextInputProps & { label?: string }) {
   );
 }
 
-/** Pressable list row with a title, an optional subtitle and an optional right-side text. */
+/** Pressable list row. `accent` draws a colored bar on the left (e.g. the deck color). */
 export function Row({
   title,
   subtitle,
   right,
+  accent,
   onPress,
   onLongPress,
 }: {
   title: string;
   subtitle?: string;
   right?: string;
+  accent?: string;
   onPress?: () => void;
   onLongPress?: () => void;
 }) {
@@ -130,6 +139,7 @@ export function Row({
         styles.row,
         { backgroundColor: pressed ? theme.muted : theme.surface, borderColor: theme.border },
       ]}>
+      {accent ? <View style={[styles.rowAccent, { backgroundColor: accent }]} /> : null}
       <View style={{ flex: 1, gap: 2 }}>
         <T numberOfLines={2}>{title}</T>
         {subtitle ? (
@@ -138,7 +148,13 @@ export function Row({
           </T>
         ) : null}
       </View>
-      {right ? <T variant="caption">{right}</T> : null}
+      {right ? (
+        <View style={[styles.badge, { backgroundColor: withAlpha(accent ?? theme.primary, 0.14) }]}>
+          <T variant="label" color={accent ?? theme.primary}>
+            {right}
+          </T>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -164,13 +180,79 @@ export function Segmented<V extends string>({
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             onPress={() => onChange(o.value)}
-            style={[styles.segment, active && { backgroundColor: theme.surface }]}>
-            <T variant="label" color={active ? theme.text : theme.textSecondary}>
+            style={[styles.segment, active && { backgroundColor: theme.primary }]}>
+            <T variant="label" color={active ? theme.onPrimary : theme.textSecondary}>
               {o.label}
             </T>
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+/** Dropdown: a field that opens a list of options in a bottom sheet. */
+export function Select<V extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label?: string;
+  value: V;
+  options: { value: V; label: string }[];
+  onChange: (v: V) => void;
+}) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const [open, setOpen] = useState(false);
+  const current = options.find((o) => o.value === value);
+  return (
+    <View style={{ gap: Spacing.xs }}>
+      {label ? <T variant="label">{label}</T> : null}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => setOpen(true)}
+        style={[styles.input, styles.select, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <T style={{ flex: 1 }}>{current?.label ?? value}</T>
+        <T color={theme.primary}>▾</T>
+      </Pressable>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+          {/* Inner Pressable swallows taps so only the backdrop closes the sheet. */}
+          <Pressable style={[styles.sheet, { backgroundColor: theme.surface, paddingBottom: insets.bottom + Spacing.md }]}>
+            {label ? (
+              <T variant="heading" style={{ padding: Spacing.lg }}>
+                {label}
+              </T>
+            ) : null}
+            <ScrollView>
+              {options.map((o) => {
+                const selected = o.value === value;
+                return (
+                  <Pressable
+                    key={o.value}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => {
+                      onChange(o.value);
+                      setOpen(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.option,
+                      (selected || pressed) && { backgroundColor: theme.primarySoft },
+                    ]}>
+                    <T style={{ flex: 1 }} color={selected ? theme.primary : theme.text}>
+                      {o.label}
+                    </T>
+                    {selected ? <T color={theme.primary}>✓</T> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -209,25 +291,26 @@ export function ask<V>(
   });
 }
 
-export const confirm = (title: string, message: string, action = 'Delete') =>
+/** Destructive confirmation. Labels come from the caller so they are translated. */
+export const confirm = (title: string, message: string, labels: { cancel: string; action: string }) =>
   ask(title, message, [
-    { text: 'Cancel', value: false, style: 'cancel' },
-    { text: action, value: true, style: 'destructive' },
+    { text: labels.cancel, value: false, style: 'cancel' },
+    { text: labels.action, value: true, style: 'destructive' },
   ]);
 
 /** Loads data when the screen gains focus, so lists refresh after editing elsewhere. Pass a memoized loader. */
 export function useFocusData<D>(load: () => Promise<D>) {
   const [data, setData] = useState<D | null>(null);
   const reload = useCallback(() => {
-    load().then(setData, (e: Error) => Alert.alert('Error', e.message));
+    load().then(setData, (e: Error) => Alert.alert('⚠️', e.message));
   }, [load]);
   useFocusEffect(reload);
   return [data, reload] as const;
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 30, lineHeight: 36, fontWeight: '700' },
-  heading: { fontSize: 18, lineHeight: 24, fontWeight: '600' },
+  title: { fontSize: 30, lineHeight: 36, fontWeight: '800' },
+  heading: { fontSize: 18, lineHeight: 24, fontWeight: '700' },
   body: { fontSize: 16, lineHeight: 22 },
   caption: { fontSize: 13, lineHeight: 18 },
   label: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
@@ -239,7 +322,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonText: { fontSize: 16, fontWeight: '600' },
+  buttonText: { fontSize: 16, fontWeight: '700' },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.sm,
@@ -247,6 +330,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm + 2,
     fontSize: 16,
   },
+  select: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -254,7 +338,18 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
   },
+  rowAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 5 },
+  badge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.sm },
   segmented: { flexDirection: 'row', borderRadius: Radius.sm, padding: 3 },
   segment: { flex: 1, alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radius.sm - 2 },
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
+  sheet: { maxHeight: '70%', borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md + 2,
+  },
 });

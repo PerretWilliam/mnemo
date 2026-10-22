@@ -8,7 +8,7 @@ const [major, minor, patch] = pkg.version.split('.').map(Number);
 const versionCode = major * 10000 + minor * 100 + patch;
 
 const config: ExpoConfig = {
-  name: 'Flashcards',
+  name: 'Mnemo',
   slug: 'flashcards',
   version: pkg.version,
   orientation: 'portrait',
@@ -22,7 +22,7 @@ const config: ExpoConfig = {
     package: 'com.perretwilliam.flashcards',
     versionCode,
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
+      backgroundColor: '#4F46E5',
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',

@@ -1,8 +1,8 @@
-# Flashcards
+# Mnemo
 
 [![CI](https://github.com/PerretWilliam/flashcard/actions/workflows/ci.yml/badge.svg)](https://github.com/PerretWilliam/flashcard/actions/workflows/ci.yml)
 
-Offline flashcard app for Android (iOS-ready) built with Expo and React Native.
+**Mnemo** is an offline flashcard app for Android (iOS-ready) built with Expo and React Native.
 Write cards in **Markdown with LaTeX math**, make **cloze** (fill-in-the-blank) cards, study them
 with **swipe gestures**, and let ChatGPT or Claude **generate whole decks** for you.
 
@@ -18,6 +18,8 @@ with **swipe gestures**, and let ChatGPT or Claude **generate whole decks** for 
 - **AI generator**: fill in topic, deck name, count, card types, language and optional notes;
   copy or share the prompt; paste the AI's answer back to import it.
 - **Dashboard and history**: streak, success rate, last-7-days chart, past sessions.
+- **Languages**: English, French, Spanish and German (follows the phone by default, switchable in
+  Settings). AI-generated cards can be in 14 languages.
 
 All data stays on the device (SQLite). No account, no network.
 

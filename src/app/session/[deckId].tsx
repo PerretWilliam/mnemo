@@ -9,9 +9,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MathMarkdown } from '@/components/math-markdown';
 import { Button, Loading, Row, Screen, Surface, T } from '@/components/ui';
-import { Radius, Spacing } from '@/constants/theme';
+import { deckColor, Radius, Spacing, withAlpha } from '@/constants/theme';
 import { getDeck, listCards, saveSession, type Card } from '@/db';
 import { useTheme } from '@/hooks/use-theme';
+import { useI18n } from '@/i18n';
 import { answerSource, isCloze, renderCloze, stripCloze } from '@/lib/cloze';
 
 const SWIPE_THRESHOLD = 110;
@@ -29,6 +30,8 @@ type Result = { card: Card; correct: boolean };
 
 export default function SessionScreen() {
   const db = useSQLiteContext();
+  const theme = useTheme();
+  const { t } = useI18n();
   const deckId = Number(useLocalSearchParams<{ deckId: string }>().deckId);
   const [deckName, setDeckName] = useState('');
   const [round, setRound] = useState<Card[] | null>(null);
@@ -82,14 +85,23 @@ export default function SessionScreen() {
     <Screen scroll={false}>
       <Stack.Screen options={{ title: deckName }} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <T variant="label">
+        <T variant="label" color={deckColor(deckId)}>
           {results.length + 1} / {round.length}
         </T>
-        <T variant="caption">Swipe left: got it · right: missed</T>
+        <T variant="caption">{t('session.swipeHint')}</T>
+      </View>
+      <View style={[styles.progress, { backgroundColor: theme.muted }]}>
+        <View
+          style={[
+            styles.progressFill,
+            { width: `${(results.length / round.length) * 100}%`, backgroundColor: deckColor(deckId) },
+          ]}
+        />
       </View>
       <SwipeCard
         key={`${card.id}-${results.length}`}
         card={card}
+        color={deckColor(deckId)}
         flipped={flipped}
         onFlip={() => setFlipped((f) => !f)}
         onSwipe={record}
@@ -101,16 +113,19 @@ export default function SessionScreen() {
 
 function SwipeCard({
   card,
+  color,
   flipped,
   onFlip,
   onSwipe,
 }: {
   card: Card;
+  color: string;
   flipped: boolean;
   onFlip: () => void;
   onSwipe: (correct: boolean) => void;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
   const { width } = useWindowDimensions();
   const x = useSharedValue(0);
   const flip = useSharedValue(0);
@@ -161,7 +176,7 @@ function SwipeCard({
   const koStyle = useAnimatedStyle(() => ({ opacity: interpolate(x.value, [0, SWIPE_THRESHOLD], [0, 1], 'clamp') }));
 
   const front = isCloze(card.front) ? renderCloze(card.front, false) : card.front;
-  const faceStyle = [styles.face, { backgroundColor: theme.surface, borderColor: theme.border }];
+  const faceStyle = [styles.face, { backgroundColor: theme.surface, borderColor: withAlpha(color, 0.5), borderTopColor: color }];
 
   return (
     <GestureDetector gesture={gesture}>
@@ -170,20 +185,20 @@ function SwipeCard({
         <Animated.View style={[faceStyle, frontStyle]}>
           <MathMarkdown source={front} center fontSize={20} />
           <T variant="caption" style={styles.hint}>
-            Tap to flip
+            {t('session.tapToFlip')}
           </T>
         </Animated.View>
-        <Animated.View style={[faceStyle, backStyle]}>
+        <Animated.View style={[faceStyle, { backgroundColor: withAlpha(color, 0.08) }, backStyle]}>
           <MathMarkdown source={answerSource(card.front, card.back)} center fontSize={18} />
         </Animated.View>
         <Animated.View style={[styles.stamp, { left: Spacing.lg, borderColor: theme.success }, okStyle]}>
           <T variant="heading" color={theme.success}>
-            ✓ Got it
+            ✓ {t('session.gotIt')}
           </T>
         </Animated.View>
         <Animated.View style={[styles.stamp, { right: Spacing.lg, borderColor: theme.danger }, koStyle]}>
           <T variant="heading" color={theme.danger}>
-            ✗ Missed
+            ✗ {t('session.missed')}
           </T>
         </Animated.View>
       </Animated.View>
@@ -203,12 +218,13 @@ function Controls({
   canUndo: boolean;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   // Buttons follow the swipe directions: correct on the left, missed on the right.
   return (
     <View style={{ flexDirection: 'row', gap: Spacing.sm, paddingBottom: insets.bottom }}>
       <Button title="✓" onPress={onCorrect} style={{ flex: 1, backgroundColor: theme.success }} />
-      <Button title="↶ Undo" variant="secondary" onPress={onUndo} disabled={!canUndo} style={{ flex: 1 }} />
+      <Button title={`↶ ${t('session.undo')}`} variant="secondary" onPress={onUndo} disabled={!canUndo} style={{ flex: 1 }} />
       <Button title="✗" onPress={onWrong} style={{ flex: 1, backgroundColor: theme.danger }} />
     </View>
   );
@@ -224,6 +240,7 @@ function Recap({
   onRestart: (cards: Card[]) => void;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
   const missed = results.filter((r) => !r.correct).map((r) => r.card);
   const correct = results.length - missed.length;
   const pct = Math.round((correct / results.length) * 100);
@@ -231,19 +248,17 @@ function Recap({
   return (
     <Screen>
       <Stack.Screen options={{ title: deckName }} />
-      <Surface style={{ alignItems: 'center' }}>
-        <T variant="caption">Session complete</T>
-        <T variant="title" color={pct >= 80 ? theme.success : pct >= 50 ? theme.text : theme.danger}>
+      <Surface tint={pct >= 80 ? theme.success : pct >= 50 ? theme.warning : theme.danger} style={{ alignItems: 'center' }}>
+        <T variant="caption">{t('session.complete')}</T>
+        <T variant="title" color={pct >= 80 ? theme.success : pct >= 50 ? theme.warning : theme.danger}>
           {pct}%
         </T>
-        <T>
-          {correct} correct · {missed.length} missed
-        </T>
+        <T>{t('session.score', { correct, missed: missed.length })}</T>
       </Surface>
-      {missed.length > 0 ? <Button title={`Review missed (${missed.length})`} onPress={() => onRestart(missed)} /> : null}
-      <Button title="Restart whole deck" variant="secondary" onPress={() => onRestart(results.map((r) => r.card))} />
-      <Button title="Done" variant="secondary" onPress={() => router.back()} />
-      {missed.length > 0 ? <T variant="label">Missed cards</T> : null}
+      {missed.length > 0 ? <Button title={t('session.reviewMissed', { count: missed.length })} onPress={() => onRestart(missed)} /> : null}
+      <Button title={t('session.restart')} variant="secondary" onPress={() => onRestart(results.map((r) => r.card))} />
+      <Button title={t('common.done')} variant="secondary" onPress={() => router.back()} />
+      {missed.length > 0 ? <T variant="label">{t('session.missedCards')}</T> : null}
       {missed.map((c) => (
         <Row key={c.id} title={stripCloze(c.front)} subtitle={stripCloze(c.back)} />
       ))}
@@ -255,13 +270,16 @@ const styles = StyleSheet.create({
   face: {
     ...StyleSheet.absoluteFill,
     borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1.5,
+    borderTopWidth: 6,
     padding: Spacing.xl,
     justifyContent: 'center',
     overflow: 'hidden',
     backfaceVisibility: 'hidden',
   },
   hint: { position: 'absolute', bottom: Spacing.lg, alignSelf: 'center' },
+  progress: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 3 },
   stamp: {
     position: 'absolute',
     top: Spacing.lg,

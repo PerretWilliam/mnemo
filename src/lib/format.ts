@@ -12,13 +12,31 @@ export type HistoryInput = {
 };
 export type ExchangeFile = { version: 1; decks: DeckInput[]; history?: HistoryInput[] };
 
+/** Problems are codes + params so the UI can translate them (keys `issue.<code>`). */
+export type IssueCode =
+  | 'invalidJson'
+  | 'rootObject'
+  | 'version'
+  | 'decksArray'
+  | 'deckName'
+  | 'cardsArray'
+  | 'front'
+  | 'backType'
+  | 'tags'
+  | 'backRequired'
+  | 'historyArray'
+  | 'historyEntry'
+  | 'repairedBackslashes'
+  | 'restoredLatex';
+export type Issue = { code: IssueCode; params?: Record<string, string | number> };
+
 export type ParseResult = {
   /** Valid content only; `null` when the file is unusable. */
   data: ExchangeFile | null;
   /** Problems that made something get skipped. */
-  errors: string[];
+  errors: Issue[];
   /** Things that were fixed automatically. */
-  warnings: string[];
+  warnings: Issue[];
 };
 
 /** Takes raw text (a file, or an AI answer with prose and ``` fences) and extracts the JSON. */
@@ -66,8 +84,8 @@ const isIsoDate = (v: unknown) => isStr(v) && !Number.isNaN(Date.parse(v));
 const isCount = (v: unknown) => Number.isInteger(v) && (v as number) >= 0;
 
 export function parseExchange(raw: string): ParseResult {
-  const errors: string[] = [];
-  const warnings: string[] = [];
+  const errors: Issue[] = [];
+  const warnings: Issue[] = [];
 
   let json: unknown;
   const text = extractJson(raw.trim());
@@ -77,21 +95,21 @@ export function parseExchange(raw: string): ParseResult {
     const repaired = escapeInvalidBackslashes(text);
     try {
       json = JSON.parse(repaired.text);
-      warnings.push(`Repaired ${repaired.count} unescaped LaTeX backslash(es).`);
+      warnings.push({ code: 'repairedBackslashes', params: { count: repaired.count } });
     } catch (e) {
-      return { data: null, errors: [`Invalid JSON: ${(e as Error).message}`], warnings };
+      return { data: null, errors: [{ code: 'invalidJson', params: { detail: (e as Error).message } }], warnings };
     }
   }
 
   if (typeof json !== 'object' || json === null) {
-    return { data: null, errors: ['Root must be a JSON object.'], warnings };
+    return { data: null, errors: [{ code: 'rootObject' }], warnings };
   }
   const root = json as Record<string, unknown>;
   if (root.version !== 1) {
-    return { data: null, errors: ['"version" must be 1.'], warnings };
+    return { data: null, errors: [{ code: 'version' }], warnings };
   }
   if (!Array.isArray(root.decks) || root.decks.length === 0) {
-    return { data: null, errors: ['"decks" must be a non-empty array.'], warnings };
+    return { data: null, errors: [{ code: 'decksArray' }], warnings };
   }
 
   let latexFixes = 0;
@@ -105,39 +123,39 @@ export function parseExchange(raw: string): ParseResult {
   root.decks.forEach((d: unknown, di) => {
     const deck = (d ?? {}) as Record<string, unknown>;
     if (!isNonEmpty(deck.name)) {
-      errors.push(`Deck ${di + 1}: "name" must be a non-empty string.`);
+      errors.push({ code: 'deckName', params: { deck: di + 1 } });
       return;
     }
     const name = deck.name.trim();
     if (!Array.isArray(deck.cards)) {
-      errors.push(`Deck "${name}": "cards" must be an array.`);
+      errors.push({ code: 'cardsArray', params: { deck: name } });
       return;
     }
     const cards: CardInput[] = [];
     deck.cards.forEach((c: unknown, ci) => {
       const card = (c ?? {}) as Record<string, unknown>;
-      const where = `Deck "${name}", card ${ci + 1}`;
-      if (!isNonEmpty(card.front)) return errors.push(`${where}: "front" must be a non-empty string.`);
-      if (card.back !== undefined && !isStr(card.back)) return errors.push(`${where}: "back" must be a string.`);
+      const where = { deck: name, card: ci + 1 };
+      if (!isNonEmpty(card.front)) return errors.push({ code: 'front', params: where });
+      if (card.back !== undefined && !isStr(card.back)) return errors.push({ code: 'backType', params: where });
       if (card.tags !== undefined && !(Array.isArray(card.tags) && card.tags.every(isStr))) {
-        return errors.push(`${where}: "tags" must be an array of strings.`);
+        return errors.push({ code: 'tags', params: where });
       }
       const front = fix(card.front);
       const back = fix(card.back ?? '');
       if (!front.includes('{{c::') && back.trim() === '') {
-        return errors.push(`${where}: "back" is required unless "front" contains a {{c::...}} cloze.`);
+        return errors.push({ code: 'backRequired', params: where });
       }
       cards.push({ front, back, tags: ((card.tags as string[] | undefined) ?? []).map((t) => t.trim()).filter(Boolean) });
     });
     decks.push({ name, cards });
   });
 
-  if (latexFixes > 0) warnings.push(`Restored LaTeX commands in ${latexFixes} field(s).`);
+  if (latexFixes > 0) warnings.push({ code: 'restoredLatex', params: { count: latexFixes } });
 
   let history: HistoryInput[] | undefined;
   if (root.history !== undefined) {
     if (!Array.isArray(root.history)) {
-      errors.push('"history" must be an array; ignored.');
+      errors.push({ code: 'historyArray' });
     } else {
       history = [];
       root.history.forEach((h: unknown, hi) => {
@@ -145,7 +163,7 @@ export function parseExchange(raw: string): ParseResult {
         if (isNonEmpty(e.deck) && isIsoDate(e.startedAt) && isIsoDate(e.endedAt) && isCount(e.correct) && isCount(e.wrong)) {
           history!.push(e as unknown as HistoryInput);
         } else {
-          errors.push(`History entry ${hi + 1}: invalid, skipped.`);
+          errors.push({ code: 'historyEntry', params: { entry: hi + 1 } });
         }
       });
     }

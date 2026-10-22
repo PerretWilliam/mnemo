@@ -6,10 +6,14 @@ import { Alert } from 'react-native';
 import { MathMarkdown } from '@/components/math-markdown';
 import { Button, confirm, Input, Loading, Screen, Surface, T } from '@/components/ui';
 import { createCard, deleteCard, getCard, updateCard } from '@/db';
+import { useTheme } from '@/hooks/use-theme';
+import { useI18n } from '@/i18n';
 import { answerSource, isCloze } from '@/lib/cloze';
 
 export default function CardEditor() {
   const db = useSQLiteContext();
+  const { t } = useI18n();
+  const theme = useTheme();
   const params = useLocalSearchParams<{ id: string; deckId: string }>();
   const isNew = params.id === 'new';
   const cardId = Number(params.id);
@@ -35,18 +39,18 @@ export default function CardEditor() {
 
   // Debounced so the WebView doesn't reload on every keystroke.
   useEffect(() => {
-    const t = setTimeout(() => setPreview(front.trim() ? answerSource(front, back) : ''), 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setPreview(front.trim() ? answerSource(front, back) : ''), 400);
+    return () => clearTimeout(timer);
   }, [front, back]);
 
   if (!loaded) return <Loading />;
 
   const save = async (addAnother: boolean) => {
-    if (!front.trim()) return Alert.alert('Missing front', 'The front of the card cannot be empty.');
+    if (!front.trim()) return Alert.alert(t('editor.missingFront'), t('editor.missingFrontText'));
     if (!isCloze(front) && !back.trim()) {
-      return Alert.alert('Missing back', 'Add an answer, or use {{c::...}} in the front to make a cloze card.');
+      return Alert.alert(t('editor.missingBack'), t('editor.missingBackText'));
     }
-    const card = { front, back, tags: tags.split(',').map((t) => t.trim()).filter(Boolean) };
+    const card = { front, back, tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean) };
     if (isNew) await createCard(db, deckId, card);
     else await updateCard(db, cardId, card);
     if (addAnother) {
@@ -56,7 +60,7 @@ export default function CardEditor() {
   };
 
   const remove = async () => {
-    if (await confirm('Delete card?', 'This cannot be undone.')) {
+    if (await confirm(t('card.deleteTitle'), t('common.cannotUndo'), { cancel: t('common.cancel'), action: t('common.delete') })) {
       await deleteCard(db, cardId);
       router.back();
     }
@@ -64,20 +68,22 @@ export default function CardEditor() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: isNew ? 'New card' : 'Edit card' }} />
-      <Input label="Front" value={front} onChangeText={setFront} multiline placeholder="Question, or text with {{c::blanks}}" />
-      <Input label="Back" value={back} onChangeText={setBack} multiline placeholder="Answer (optional for cloze cards)" />
-      <Input label="Tags (comma separated)" value={tags} onChangeText={setTags} autoCapitalize="none" />
-      <T variant="caption">Markdown supported. Math: $x^2$ inline, $$\int f$$ block. Cloze: {'{{c::hidden}}'}.</T>
+      <Stack.Screen options={{ title: isNew ? t('editor.newTitle') : t('editor.editTitle') }} />
+      <Input label={t('editor.front')} value={front} onChangeText={setFront} multiline placeholder={t('editor.frontPlaceholder')} />
+      <Input label={t('editor.back')} value={back} onChangeText={setBack} multiline placeholder={t('editor.backPlaceholder')} />
+      <Input label={t('editor.tags')} value={tags} onChangeText={setTags} autoCapitalize="none" />
+      <T variant="caption">{t('editor.help')}</T>
       {preview ? (
-        <Surface>
-          <T variant="label">Preview</T>
+        <Surface tint={theme.primary}>
+          <T variant="label" color={theme.primary}>
+            {t('editor.preview')}
+          </T>
           <MathMarkdown source={preview} />
         </Surface>
       ) : null}
-      <Button title="Save" onPress={() => save(false)} />
-      {isNew ? <Button title="Save and add another" variant="secondary" onPress={() => save(true)} /> : null}
-      {!isNew ? <Button title="Delete card" variant="danger" onPress={remove} /> : null}
+      <Button title={t('common.save')} onPress={() => save(false)} />
+      {isNew ? <Button title={t('editor.saveAnother')} variant="secondary" onPress={() => save(true)} /> : null}
+      {!isNew ? <Button title={t('editor.delete')} variant="danger" onPress={remove} /> : null}
     </Screen>
   );
 }
