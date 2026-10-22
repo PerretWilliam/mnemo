@@ -5,6 +5,7 @@ import { Alert } from 'react-native';
 
 import { MathMarkdown } from '@/components/math-markdown';
 import { Button, confirm, Input, Loading, Screen, Surface, T } from '@/components/ui';
+import { Icons } from '@/constants/icons';
 import { createCard, deleteCard, getCard, updateCard } from '@/db';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
@@ -81,9 +82,9 @@ export default function CardEditor() {
           <MathMarkdown source={preview} />
         </Surface>
       ) : null}
-      <Button title={t('common.save')} onPress={() => save(false)} />
-      {isNew ? <Button title={t('editor.saveAnother')} variant="secondary" onPress={() => save(true)} /> : null}
-      {!isNew ? <Button title={t('editor.delete')} variant="danger" onPress={remove} /> : null}
+      <Button icon={Icons.check} title={t('common.save')} onPress={() => save(false)} />
+      {isNew ? <Button icon={Icons.add} title={t('editor.saveAnother')} variant="secondary" onPress={() => save(true)} /> : null}
+      {!isNew ? <Button icon={Icons.delete} title={t('editor.delete')} variant="danger" onPress={remove} /> : null}
     </Screen>
   );
 }

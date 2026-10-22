@@ -13,16 +13,20 @@ const startOfDay = (t: number) => {
   return d.getTime();
 };
 
-/** Cards reviewed per day for the last `days` days, oldest first. */
+/** Cards reviewed per day for the last `days` days, oldest first. `count` = correct + wrong. */
 export function dailyReviews(sessions: SessionLike[], days: number, now = Date.now()) {
-  const totals = new Map<string, number>();
-  for (const s of sessions) totals.set(dayKey(s.endedAt), (totals.get(dayKey(s.endedAt)) ?? 0) + s.correct + s.wrong);
+  const totals = new Map<string, { correct: number; wrong: number }>();
+  for (const s of sessions) {
+    const t = totals.get(dayKey(s.endedAt)) ?? { correct: 0, wrong: 0 };
+    totals.set(dayKey(s.endedAt), { correct: t.correct + s.correct, wrong: t.wrong + s.wrong });
+  }
   const today = startOfDay(now);
   return Array.from({ length: days }, (_, i) => {
     // Step back by calendar days (not 24h) so DST changes don't skip or repeat a day.
     const d = new Date(today);
     d.setDate(d.getDate() - (days - 1 - i));
-    return { date: d.getTime(), count: totals.get(dayKey(d.getTime())) ?? 0 };
+    const { correct, wrong } = totals.get(dayKey(d.getTime())) ?? { correct: 0, wrong: 0 };
+    return { date: d.getTime(), correct, wrong, count: correct + wrong };
   });
 }
 

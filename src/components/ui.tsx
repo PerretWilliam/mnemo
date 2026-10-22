@@ -1,5 +1,6 @@
 // Small set of themed building blocks shared by all screens.
 import { useFocusEffect } from 'expo-router';
+import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { useCallback, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -20,6 +21,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Radius, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useI18n } from '@/i18n';
+
+/** An icon: Material Symbols on Android (`md`), SF Symbols on iOS (`sf`). Bundled, works offline. */
+export type IconName = { md: AndroidSymbol; sf: SFSymbol };
+
+export function Icon({ name, size = 22, color }: { name: IconName; size?: number; color?: string }) {
+  const theme = useTheme();
+  return <SymbolView name={{ android: name.md, ios: name.sf }} size={size} tintColor={color ?? theme.text} />;
+}
 
 type TextVariant = 'title' | 'heading' | 'body' | 'caption' | 'label';
 
@@ -68,14 +78,15 @@ export function Surface({ children, style, tint }: { children: ReactNode; style?
 }
 
 type ButtonProps = {
-  title: string;
+  title?: string;
+  icon?: IconName;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'danger';
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
-export function Button({ title, onPress, variant = 'primary', disabled, style }: ButtonProps) {
+export function Button({ title, icon, onPress, variant = 'primary', disabled, style }: ButtonProps) {
   const theme = useTheme();
   const bg = variant === 'primary' ? theme.primary : variant === 'danger' ? theme.danger : theme.primarySoft;
   const fg = variant === 'secondary' ? theme.primary : theme.onPrimary;
@@ -89,7 +100,8 @@ export function Button({ title, onPress, variant = 'primary', disabled, style }:
         { backgroundColor: bg, opacity: disabled ? 0.4 : pressed ? 0.75 : 1 },
         style,
       ]}>
-      <Text style={[styles.buttonText, { color: fg }]}>{title}</Text>
+      {icon ? <Icon name={icon} color={fg} size={20} /> : null}
+      {title ? <Text style={[styles.buttonText, { color: fg }]}>{title}</Text> : null}
     </Pressable>
   );
 }
@@ -215,7 +227,7 @@ export function Select<V extends string>({
         onPress={() => setOpen(true)}
         style={[styles.input, styles.select, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <T style={{ flex: 1 }}>{current?.label ?? value}</T>
-        <T color={theme.primary}>▾</T>
+        <Icon name={{ md: 'expand_more', sf: 'chevron.down' }} color={theme.primary} />
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
@@ -245,7 +257,7 @@ export function Select<V extends string>({
                     <T style={{ flex: 1 }} color={selected ? theme.primary : theme.text}>
                       {o.label}
                     </T>
-                    {selected ? <T color={theme.primary}>✓</T> : null}
+                    {selected ? <Icon name={{ md: 'check', sf: 'checkmark' }} color={theme.primary} /> : null}
                   </Pressable>
                 );
               })}
@@ -300,10 +312,12 @@ export const confirm = (title: string, message: string, labels: { cancel: string
 
 /** Loads data when the screen gains focus, so lists refresh after editing elsewhere. Pass a memoized loader. */
 export function useFocusData<D>(load: () => Promise<D>) {
+  const { t } = useI18n();
+  const errorTitle = t('common.error');
   const [data, setData] = useState<D | null>(null);
   const reload = useCallback(() => {
-    load().then(setData, (e: Error) => Alert.alert('⚠️', e.message));
-  }, [load]);
+    load().then(setData, (e: Error) => Alert.alert(errorTitle, e.message));
+  }, [load, errorTitle]);
   useFocusEffect(reload);
   return [data, reload] as const;
 }
@@ -319,6 +333,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radius.md,
+    flexDirection: 'row',
+    gap: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },

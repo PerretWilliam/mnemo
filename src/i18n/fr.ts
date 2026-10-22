@@ -30,6 +30,10 @@ export const fr: Dictionary = {
   'dash.studyNext': 'À réviser',
   'dash.lastStudied': 'Révisé le {date}',
   'dash.neverStudied': 'Jamais révisé',
+  'dash.tapHint': 'Touche une barre pour voir le détail du jour',
+  'dash.dayCorrect': '{count} réussies',
+  'dash.dayWrong': '{count} ratées',
+  'dash.dayEmpty': 'Aucune révision ce jour-là',
 
   'decks.title': 'Paquets',
   'decks.newPlaceholder': 'Nom du nouveau paquet',

@@ -30,6 +30,10 @@ export const en = {
   'dash.studyNext': 'Study next',
   'dash.lastStudied': 'Last studied {date}',
   'dash.neverStudied': 'Never studied',
+  'dash.tapHint': 'Tap a bar to see that day',
+  'dash.dayCorrect': '{count} correct',
+  'dash.dayWrong': '{count} missed',
+  'dash.dayEmpty': 'No review that day',
 
   'decks.title': 'Decks',
   'decks.newPlaceholder': 'New deck name',

@@ -8,7 +8,8 @@ import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, wi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MathMarkdown } from '@/components/math-markdown';
-import { Button, Loading, Row, Screen, Surface, T } from '@/components/ui';
+import { Button, Icon, Loading, Row, Screen, Surface, T } from '@/components/ui';
+import { Icons } from '@/constants/icons';
 import { deckColor, Radius, Spacing, withAlpha } from '@/constants/theme';
 import { getDeck, listCards, saveSession, type Card } from '@/db';
 import { useTheme } from '@/hooks/use-theme';
@@ -191,14 +192,17 @@ function SwipeCard({
         <Animated.View style={[faceStyle, { backgroundColor: withAlpha(color, 0.08) }, backStyle]}>
           <MathMarkdown source={answerSource(card.front, card.back)} center fontSize={18} />
         </Animated.View>
-        <Animated.View style={[styles.stamp, { left: Spacing.lg, borderColor: theme.success }, okStyle]}>
+        {/* Each stamp sits on the trailing edge of the swipe so it stays on screen, away from the thumb. */}
+        <Animated.View style={[styles.stamp, { right: Spacing.lg, borderColor: theme.success }, okStyle]}>
+          <Icon name={Icons.correct} color={theme.success} />
           <T variant="heading" color={theme.success}>
-            ✓ {t('session.gotIt')}
+            {t('session.gotIt')}
           </T>
         </Animated.View>
-        <Animated.View style={[styles.stamp, { right: Spacing.lg, borderColor: theme.danger }, koStyle]}>
+        <Animated.View style={[styles.stamp, { left: Spacing.lg, borderColor: theme.danger }, koStyle]}>
+          <Icon name={Icons.wrong} color={theme.danger} />
           <T variant="heading" color={theme.danger}>
-            ✗ {t('session.missed')}
+            {t('session.missed')}
           </T>
         </Animated.View>
       </Animated.View>
@@ -223,9 +227,19 @@ function Controls({
   // Buttons follow the swipe directions: correct on the left, missed on the right.
   return (
     <View style={{ flexDirection: 'row', gap: Spacing.sm, paddingBottom: insets.bottom }}>
-      <Button title="✓" onPress={onCorrect} style={{ flex: 1, backgroundColor: theme.success }} />
-      <Button title={`↶ ${t('session.undo')}`} variant="secondary" onPress={onUndo} disabled={!canUndo} style={{ flex: 1 }} />
-      <Button title="✗" onPress={onWrong} style={{ flex: 1, backgroundColor: theme.danger }} />
+      <Button
+        icon={Icons.check}
+        title={t('session.gotIt')}
+        onPress={onCorrect}
+        style={{ flex: 1, paddingHorizontal: Spacing.sm, backgroundColor: theme.success }}
+      />
+      <Button icon={Icons.undo} variant="secondary" onPress={onUndo} disabled={!canUndo} style={{ width: 56 }} />
+      <Button
+        icon={Icons.wrong}
+        title={t('session.missed')}
+        onPress={onWrong}
+        style={{ flex: 1, paddingHorizontal: Spacing.sm, backgroundColor: theme.danger }}
+      />
     </View>
   );
 }
@@ -255,9 +269,9 @@ function Recap({
         </T>
         <T>{t('session.score', { correct, missed: missed.length })}</T>
       </Surface>
-      {missed.length > 0 ? <Button title={t('session.reviewMissed', { count: missed.length })} onPress={() => onRestart(missed)} /> : null}
-      <Button title={t('session.restart')} variant="secondary" onPress={() => onRestart(results.map((r) => r.card))} />
-      <Button title={t('common.done')} variant="secondary" onPress={() => router.back()} />
+      {missed.length > 0 ? <Button icon={Icons.replay} title={t('session.reviewMissed', { count: missed.length })} onPress={() => onRestart(missed)} /> : null}
+      <Button icon={Icons.study} title={t('session.restart')} variant="secondary" onPress={() => onRestart(results.map((r) => r.card))} />
+      <Button icon={Icons.done} title={t('common.done')} variant="secondary" onPress={() => router.back()} />
       {missed.length > 0 ? <T variant="label">{t('session.missedCards')}</T> : null}
       {missed.map((c) => (
         <Row key={c.id} title={stripCloze(c.front)} subtitle={stripCloze(c.back)} />
@@ -283,6 +297,9 @@ const styles = StyleSheet.create({
   stamp: {
     position: 'absolute',
     top: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
     borderWidth: 2,
     borderRadius: Radius.sm,
     paddingHorizontal: Spacing.md,

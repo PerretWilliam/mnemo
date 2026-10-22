@@ -4,6 +4,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { Alert } from 'react-native';
 
 import { Button, confirm, Screen, Select, Surface, T } from '@/components/ui';
+import { Icons } from '@/constants/icons';
 import { wipeAll } from '@/db';
 import { useTheme } from '@/hooks/use-theme';
 import { LANGUAGES, useI18n, type Lang, type LanguagePref } from '@/i18n';
@@ -41,20 +42,20 @@ export default function SettingsScreen() {
       <Surface>
         <T variant="heading">{t('settings.import')}</T>
         <T variant="caption">{t('settings.importHelp')}</T>
-        <Button title={t('settings.importFile')} onPress={run(() => importFromFile(db, i18n))} />
-        <Button title={t('settings.paste')} variant="secondary" onPress={run(() => importFromClipboard(db, i18n))} />
-        <Button title={`✨ ${t('ai.title')}`} variant="secondary" onPress={() => router.push('/ai-prompt')} />
+        <Button icon={Icons.importFile} title={t('settings.importFile')} onPress={run(() => importFromFile(db, i18n))} />
+        <Button icon={Icons.paste} title={t('settings.paste')} variant="secondary" onPress={run(() => importFromClipboard(db, i18n))} />
+        <Button icon={Icons.ai} title={t('ai.title')} variant="secondary" onPress={() => router.push('/ai-prompt')} />
       </Surface>
       <Surface>
         <T variant="heading">{t('settings.export')}</T>
-        <Button title={t('settings.exportDecks')} onPress={run(() => exportToFile(db, false, i18n))} />
-        <Button title={t('settings.backup')} variant="secondary" onPress={run(() => exportToFile(db, true, i18n))} />
+        <Button icon={Icons.export} title={t('settings.exportDecks')} onPress={run(() => exportToFile(db, false, i18n))} />
+        <Button icon={Icons.save} title={t('settings.backup')} variant="secondary" onPress={run(() => exportToFile(db, true, i18n))} />
       </Surface>
       <Surface tint={theme.danger}>
         <T variant="heading" color={theme.danger}>
           {t('settings.danger')}
         </T>
-        <Button title={t('settings.erase')} variant="danger" onPress={run(erase)} />
+        <Button icon={Icons.delete} title={t('settings.erase')} variant="danger" onPress={run(erase)} />
       </Surface>
       <T variant="caption" style={{ textAlign: 'center' }}>
         Mnemo · {t('settings.version', { version: Constants.expoConfig?.version ?? '' })}

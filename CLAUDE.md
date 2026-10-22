@@ -75,6 +75,9 @@ docs/FORMAT.md           JSON exchange format spec
 - **Data refresh**: screens load with `useFocusData(useCallback(...))` so they refresh on focus.
 - **Theme**: colors from `useTheme()` only (light + dark). Decks get a stable color with
   `deckColor(id)`; tinted backgrounds via `withAlpha()` or `<Surface tint>`.
+- **Icons**: `<Icon name={Icons.x} />` / `<Button icon={Icons.x}>` with the catalog in
+  `src/constants/icons.ts` (Material Symbols on Android, SF Symbols on iOS, bundled offline).
+  Never use emojis or text characters (✓ ✗ ▾…) as icons.
 - **Branding**: the logo is code in `scripts/build-icons.mjs`; edit it and run
   `node scripts/build-icons.mjs` to regenerate `assets/images/*`. Never edit the PNGs by hand.
 - Keep dependencies minimal. Prefer Expo modules; justify any new library in the PR.

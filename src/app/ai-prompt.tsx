@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Alert, Share, View } from 'react-native';
 
 import { Button, Input, Screen, Segmented, Select, Surface, T } from '@/components/ui';
+import { Icons } from '@/constants/icons';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { CARD_LANGUAGES, useI18n } from '@/i18n';
@@ -74,14 +75,14 @@ export default function AiPromptScreen() {
         multiline
         placeholder={t('ai.notesPlaceholder')}
       />
-      <Button title={t('ai.copy')} onPress={copy} disabled={!ready} />
-      <Button title={t('ai.share')} variant="secondary" disabled={!ready} onPress={() => Share.share({ message: prompt() })} />
+      <Button icon={Icons.copy} title={t('ai.copy')} onPress={copy} disabled={!ready} />
+      <Button icon={Icons.share} title={t('ai.share')} variant="secondary" disabled={!ready} onPress={() => Share.share({ message: prompt() })} />
       <Surface tint={theme.accent}>
         <T variant="heading" color={theme.accent}>
           {t('ai.then')}
         </T>
         <T variant="caption">{t('ai.thenText')}</T>
-        <Button title={t('ai.import')} onPress={importAnswer} />
+        <Button icon={Icons.paste} title={t('ai.import')} onPress={importAnswer} />
       </Surface>
     </Screen>
   );

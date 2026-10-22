@@ -30,6 +30,10 @@ export const es: Dictionary = {
   'dash.studyNext': 'Para repasar',
   'dash.lastStudied': 'Repasado el {date}',
   'dash.neverStudied': 'Nunca repasado',
+  'dash.tapHint': 'Toca una barra para ver ese día',
+  'dash.dayCorrect': '{count} aciertos',
+  'dash.dayWrong': '{count} fallos',
+  'dash.dayEmpty': 'Sin repasos ese día',
 
   'decks.title': 'Mazos',
   'decks.newPlaceholder': 'Nombre del nuevo mazo',

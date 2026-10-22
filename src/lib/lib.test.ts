@@ -28,6 +28,10 @@ test('stats: daily buckets, streak and success rate', () => {
     { endedAt: at(3), correct: 1, wrong: 1 },
   ];
   assert.deepEqual(dailyReviews(sessions, 4, now).map((d) => d.count), [2, 0, 4, 5]);
+  assert.deepEqual(
+    dailyReviews(sessions, 1, now).map(({ correct, wrong }) => ({ correct, wrong })),
+    [{ correct: 4, wrong: 1 }],
+  );
   assert.equal(streak(sessions, now), 2);
   assert.equal(streak(sessions.slice(2), now), 1); // nothing today: counts from yesterday
   assert.equal(successRate(sessions), 64);
