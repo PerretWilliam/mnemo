@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/PerretWilliam/flashcard/compare/v0.2.0...v0.3.0) (2026-10-22)
+
+
+### Features
+
+* Mnemo branding, app translations and a more colorful UI ([#8](https://github.com/PerretWilliam/flashcard/issues/8)) ([843db50](https://github.com/PerretWilliam/flashcard/commit/843db50102f196d4a76413dfdd5fbf28349e3396))
+
 ## [0.2.0](https://github.com/PerretWilliam/flashcard/compare/v0.1.0...v0.2.0) (2026-10-22)
 
 
