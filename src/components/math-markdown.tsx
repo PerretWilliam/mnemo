@@ -75,7 +75,7 @@ export function MathMarkdown({ source, center = false, fontSize = 17, style }: P
     <View pointerEvents="none" style={[{ height }, style]}>
       <WebView
         originWhitelist={['about:*']}
-        source={{ html }}
+        source={{ html, baseUrl: 'about:blank' }}
         onMessage={(e) => setHeight(Math.max(24, Number(e.nativeEvent.data) + 4))}
         onShouldStartLoadWithRequest={(r) => r.url.startsWith('about:')}
         scrollEnabled={false}
