@@ -16,7 +16,9 @@ npm run android   # debug build on a USB device or emulator
 
 1. Branch from `main`: `feat/short-name`, `fix/short-name`, `docs/...`, `chore/...`.
 2. Keep changes focused. Add or update tests in `src/lib/*.test.ts` for any pure logic.
-3. Run `npm run check` (lint + typecheck + tests). CI runs the same.
+3. Run `npm run check` (lint + typecheck + tests). CI runs the same. CI does **not** build the APK
+   on pull requests (too slow; it is built on release), so if you touch native config
+   (`app.config.ts`, plugins, native deps), run `npm run build:apk` locally.
 4. Open a pull request. **The PR title must follow [Conventional Commits](https://www.conventionalcommits.org/)**,
    because PRs are squash-merged and the title becomes the commit on `main`:
    - `feat: add tag filter to deck screen` → minor version bump

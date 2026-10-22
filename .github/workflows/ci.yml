@@ -37,24 +37,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  android:
-    name: Android build
-    needs: check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
-      - run: npm ci
-      - run: npm run build:apk
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
-          retention-days: 7
+# The Android APK is slow to build: it only runs on release (see release.yml).
