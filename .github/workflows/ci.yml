@@ -54,7 +54,7 @@ jobs:
           cache: gradle
       - run: npm ci
       - run: npm run build:apk
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: app-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
