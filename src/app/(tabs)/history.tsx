@@ -2,7 +2,9 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback } from 'react';
 
 import { Empty, Row, Screen, useFocusData } from '@/components/ui';
+import { deckColor } from '@/constants/theme';
 import { listSessions } from '@/db';
+import { useI18n } from '@/i18n';
 
 const formatDuration = (ms: number) => {
   const s = Math.round(ms / 1000);
@@ -11,11 +13,12 @@ const formatDuration = (ms: number) => {
 
 export default function HistoryScreen() {
   const db = useSQLiteContext();
+  const { t, lang } = useI18n();
   const [sessions] = useFocusData(useCallback(() => listSessions(db), [db]));
 
   return (
-    <Screen title="History">
-      {sessions?.length === 0 ? <Empty text="No study sessions yet." /> : null}
+    <Screen title={t('history.title')}>
+      {sessions?.length === 0 ? <Empty text={t('history.empty')} /> : null}
       {sessions?.map((s) => {
         const total = s.correct + s.wrong;
         const pct = total ? Math.round((s.correct / total) * 100) : 0;
@@ -23,7 +26,8 @@ export default function HistoryScreen() {
           <Row
             key={s.id}
             title={s.deckName}
-            subtitle={`${new Date(s.endedAt).toLocaleString()} · ${formatDuration(s.endedAt - s.startedAt)}`}
+            accent={deckColor(s.deckId)}
+            subtitle={`${new Date(s.endedAt).toLocaleString(lang)} · ${formatDuration(s.endedAt - s.startedAt)}`}
             right={`${s.correct}/${total} · ${pct}%`}
           />
         );

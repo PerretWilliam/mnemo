@@ -4,7 +4,7 @@ Guidance for AI agents and humans working on this repository.
 
 ## Project
 
-**Flashcards**: an offline-first mobile flashcard app (Android first, iOS-ready).
+**Mnemo**: an offline-first mobile flashcard app (Android first, iOS-ready).
 Markdown + KaTeX math, cloze cards (`{{c::...}}`), swipe study sessions, JSON import/export,
 and a prompt generator that lets ChatGPT/Claude produce decks in the app's JSON format.
 
@@ -13,8 +13,13 @@ react-native-webview + marked + KaTeX (inlined, offline) · gesture-handler v3 +
 
 ## Language rules — everything in English
 
-- **App UI text**: English. No hard-coded French or other languages in the UI.
-  (Card *content* and the AI prompt's target language are user data, not UI.)
+- **App UI text**: never hard-coded in screens. Every string is a key in `src/i18n/en.ts`
+  (English is the source), translated in `fr.ts`, `es.ts`, `de.ts`. TypeScript fails if a
+  language misses a key. Read them with `const { t, tp } = useI18n()`; plurals use
+  `<key>_one` / `<key>_other` + `tp(key, count)`. Adding a language = one dictionary + one
+  line in `LANGUAGES` (`src/i18n/index.tsx`).
+- Pure code in `src/lib/` returns codes, not sentences (e.g. import `Issue` codes), so the UI
+  can translate them. Card *content* is user data, not UI.
 - **Code**: identifiers, file names, types, routes: English.
 - **Comments and JSDoc**: English. Explain *why*, not *what*. Keep them short.
 - **Commits, PR titles/descriptions, issues, docs, changelog**: English.
@@ -43,11 +48,12 @@ src/app/                 Expo Router routes ONLY (every file is a screen)
   card/[id].tsx          editor + live preview (id = "new" to create; needs ?deckId=)
   session/[deckId].tsx   swipe study session + recap
   ai-prompt.tsx          AI prompt generator + clipboard import
-src/components/          ui.tsx (themed primitives), math-markdown.tsx (WebView renderer)
+src/components/          ui.tsx (themed primitives, Select dropdown), math-markdown.tsx (WebView renderer)
+src/i18n/                dictionaries (en source, fr, es, de) + I18nProvider / useI18n
 src/lib/                 PURE TypeScript, no React/Expo imports, unit-tested with node:test
 src/db.ts                SQLite schema, migrations (PRAGMA user_version) and queries
 src/transfer.ts          import/export flows (file picker, clipboard, share sheet)
-scripts/                 build-webview-assets.mjs (postinstall)
+scripts/                 build-webview-assets.mjs (postinstall), build-icons.mjs (logo -> icon/splash PNGs)
 docs/FORMAT.md           JSON exchange format spec
 ```
 
@@ -67,7 +73,10 @@ docs/FORMAT.md           JSON exchange format spec
 - **Rendering**: list rows show plain text (`stripCloze`); only displayed card faces and the
   editor preview use `<MathMarkdown>` (one WebView each). Don't add a WebView per list item.
 - **Data refresh**: screens load with `useFocusData(useCallback(...))` so they refresh on focus.
-- **Theme**: colors from `useTheme()` only; no hard-coded colors in screens. Light + dark.
+- **Theme**: colors from `useTheme()` only (light + dark). Decks get a stable color with
+  `deckColor(id)`; tinted backgrounds via `withAlpha()` or `<Surface tint>`.
+- **Branding**: the logo is code in `scripts/build-icons.mjs`; edit it and run
+  `node scripts/build-icons.mjs` to regenerate `assets/images/*`. Never edit the PNGs by hand.
 - Keep dependencies minimal. Prefer Expo modules; justify any new library in the PR.
 - No speculative abstractions. Small, readable files over clever ones.
 

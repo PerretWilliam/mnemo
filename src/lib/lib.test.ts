@@ -7,6 +7,16 @@ import { isCloze, renderCloze, splitCloze, stripCloze } from './cloze.ts';
 import { parseExchange, restoreLatex } from './format.ts';
 import { buildPrompt } from './prompt.ts';
 import { dailyReviews, streak, successRate } from './stats.ts';
+import { interpolate, pluralCategory } from './translate.ts';
+
+test('translate: interpolation and plural categories', () => {
+  assert.equal(interpolate('{count} cards in {deck}', { count: 3, deck: 'D' }), '3 cards in D');
+  assert.equal(interpolate('keep {unknown}'), 'keep {unknown}');
+  assert.equal(pluralCategory('en', 0), 'other');
+  assert.equal(pluralCategory('en', 1), 'one');
+  assert.equal(pluralCategory('fr', 0), 'one');
+  assert.equal(pluralCategory('fr', 2), 'other');
+});
 
 test('stats: daily buckets, streak and success rate', () => {
   const now = new Date(2026, 4, 10, 15).getTime();
@@ -76,8 +86,8 @@ test('format: reports invalid cards with their number and keeps the valid ones',
   });
   const r = parseExchange(raw);
   assert.equal(r.data?.decks[0].cards.length, 2);
-  assert.match(r.errors[0], /card 2/);
-  assert.match(r.errors[1], /card 3/);
+  assert.deepEqual(r.errors[0], { code: 'front', params: { deck: 'D', card: 2 } });
+  assert.deepEqual(r.errors[1], { code: 'backRequired', params: { deck: 'D', card: 3 } });
 });
 
 test('format: rejects wrong version and garbage', () => {

@@ -4,9 +4,10 @@ import { useCallback } from 'react';
 import { View } from 'react-native';
 
 import { Button, Loading, Row, Screen, Surface, T, useFocusData } from '@/components/ui';
-import { Radius, Spacing } from '@/constants/theme';
+import { deckColor, Radius, Spacing, withAlpha } from '@/constants/theme';
 import { listDecks, listSessions } from '@/db';
 import { useTheme } from '@/hooks/use-theme';
+import { useI18n } from '@/i18n';
 import { dailyReviews, streak, successRate } from '@/lib/stats';
 
 const DAYS = 7;
@@ -15,6 +16,7 @@ const BAR_HEIGHT = 96;
 export default function Dashboard() {
   const db = useSQLiteContext();
   const theme = useTheme();
+  const { t, tp, lang } = useI18n();
   const [data] = useFocusData(
     useCallback(async () => ({ decks: await listDecks(db), sessions: await listSessions(db, -1) }), [db]),
   );
@@ -34,50 +36,62 @@ export default function Dashboard() {
     .slice(0, 3);
 
   return (
-    <Screen title="Flashcards">
+    <Screen title="Mnemo">
       <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-        <Stat label="Decks" value={String(decks.length)} />
-        <Stat label="Cards" value={String(cards)} />
-        <Stat label="Streak" value={`${streak(sessions)}d`} />
-        <Stat label="Success" value={rate === null ? '–' : `${rate}%`} />
+        <Stat label={t('dash.decks')} value={String(decks.length)} color="#6366F1" />
+        <Stat label={t('dash.cards')} value={String(cards)} color="#EC4899" />
+        <Stat label={t('dash.streak')} value={t('dash.streakValue', { count: streak(sessions) })} color="#F59E0B" />
+        <Stat label={t('dash.success')} value={rate === null ? '–' : `${rate}%`} color="#10B981" />
       </View>
 
       <Surface>
-        <T variant="heading">Last {DAYS} days</T>
+        <T variant="heading">{t('dash.lastDays', { count: DAYS })}</T>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm, height: BAR_HEIGHT + 40 }}>
-          {days.map((d) => (
-            <View key={d.date} style={{ flex: 1, alignItems: 'center', gap: Spacing.xs }}>
-              <T variant="caption">{d.count || ''}</T>
-              <View
-                style={{
-                  width: '100%',
-                  height: Math.max(3, (d.count / max) * BAR_HEIGHT),
-                  borderRadius: Radius.sm / 2,
-                  backgroundColor: d.count ? theme.primary : theme.muted,
-                }}
-              />
-              <T variant="caption">{new Date(d.date).toLocaleDateString(undefined, { weekday: 'narrow' })}</T>
-            </View>
-          ))}
+          {days.map((d, i) => {
+            const today = i === days.length - 1;
+            return (
+              <View key={d.date} style={{ flex: 1, alignItems: 'center', gap: Spacing.xs }}>
+                <T variant="caption">{d.count || ''}</T>
+                <View
+                  style={{
+                    width: '100%',
+                    height: Math.max(4, (d.count / max) * BAR_HEIGHT),
+                    borderRadius: Radius.sm / 2,
+                    backgroundColor: !d.count ? theme.muted : today ? theme.primary : withAlpha(theme.accent, 0.55),
+                  }}
+                />
+                <T variant="caption" color={today ? theme.primary : undefined}>
+                  {new Date(d.date).toLocaleDateString(lang, { weekday: 'narrow' })}
+                </T>
+              </View>
+            );
+          })}
         </View>
       </Surface>
 
       {decks.length === 0 ? (
-        <Surface>
-          <T variant="heading">Get started</T>
-          <T variant="caption">Create a deck, import a JSON file, or let an AI generate one for you.</T>
-          <Button title="Create a deck" onPress={() => router.push('/decks')} />
-          <Button title="Generate with AI" variant="secondary" onPress={() => router.push('/ai-prompt')} />
+        <Surface tint={theme.primary}>
+          <T variant="heading" color={theme.primary}>
+            {t('dash.getStarted')}
+          </T>
+          <T variant="caption">{t('dash.getStartedText')}</T>
+          <Button title={t('dash.createDeck')} onPress={() => router.push('/decks')} />
+          <Button title={t('ai.title')} variant="secondary" onPress={() => router.push('/ai-prompt')} />
         </Surface>
       ) : null}
 
-      {nextUp.length > 0 ? <T variant="heading">Study next</T> : null}
+      {nextUp.length > 0 ? <T variant="heading">{t('dash.studyNext')}</T> : null}
       {nextUp.map((d) => (
         <Row
           key={d.id}
           title={d.name}
-          subtitle={lastByDeck.has(d.id) ? `Last studied ${new Date(lastByDeck.get(d.id)!).toLocaleDateString()}` : 'Never studied'}
-          right={`${d.cardCount} cards`}
+          accent={deckColor(d.id)}
+          subtitle={
+            lastByDeck.has(d.id)
+              ? t('dash.lastStudied', { date: new Date(lastByDeck.get(d.id)!).toLocaleDateString(lang) })
+              : t('dash.neverStudied')
+          }
+          right={tp('count.cards', d.cardCount)}
           onPress={() => router.push({ pathname: '/session/[deckId]', params: { deckId: d.id } })}
         />
       ))}
@@ -85,11 +99,15 @@ export default function Dashboard() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <Surface style={{ flex: 1, padding: Spacing.md, gap: 2, alignItems: 'center' }}>
-      <T variant="heading">{value}</T>
-      <T variant="caption">{label}</T>
+    <Surface tint={color} style={{ flex: 1, padding: Spacing.md, gap: 2, alignItems: 'center' }}>
+      <T variant="heading" color={color}>
+        {value}
+      </T>
+      <T variant="caption" numberOfLines={1}>
+        {label}
+      </T>
     </Surface>
   );
 }
