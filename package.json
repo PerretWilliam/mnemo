@@ -1,6 +1,6 @@
 {
   "name": "flashcards",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Offline flashcard app with Markdown, KaTeX math, cloze cards and AI-assisted deck generation.",
   "private": true,
   "main": "expo-router/entry",
