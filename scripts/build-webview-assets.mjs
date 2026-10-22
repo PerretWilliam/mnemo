@@ -1,6 +1,6 @@
 // Inlines marked + KaTeX (JS, CSS and woff2 fonts) into a TS module so the
 // WebView renderer works fully offline. Runs on `postinstall`.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,5 +27,6 @@ const out = [
   '',
 ].join('\n');
 
+mkdirSync(join(root, 'src/render'), { recursive: true });
 writeFileSync(join(root, 'src/render/assets.generated.ts'), out);
 console.log(`webview assets generated (${fontCount} fonts inlined)`);
