@@ -1,0 +1,10 @@
+# npm deps are not managed here: Expo pins SDK-compatible versions.
+# Upgrade them with `npx expo install --fix` (or an SDK upgrade) instead.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
