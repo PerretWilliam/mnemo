@@ -30,6 +30,10 @@ export const de: Dictionary = {
   'dash.studyNext': 'Als Nächstes lernen',
   'dash.lastStudied': 'Zuletzt gelernt am {date}',
   'dash.neverStudied': 'Noch nie gelernt',
+  'dash.tapHint': 'Tippe auf einen Balken für die Details',
+  'dash.dayCorrect': '{count} richtig',
+  'dash.dayWrong': '{count} falsch',
+  'dash.dayEmpty': 'An diesem Tag nicht gelernt',
 
   'decks.title': 'Stapel',
   'decks.newPlaceholder': 'Name des neuen Stapels',

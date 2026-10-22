@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 
 import { Button, confirm, Empty, Input, Loading, Row, Screen, T, useFocusData } from '@/components/ui';
+import { Icons } from '@/constants/icons';
 import { deckColor, Spacing } from '@/constants/theme';
 import { deleteCard, deleteDeck, getDeck, listCards, renameDeck } from '@/db';
 import { useI18n } from '@/i18n';
@@ -61,12 +62,14 @@ export default function DeckScreen() {
       <Input label={t('deck.name')} value={name ?? deck.name} onChangeText={setName} onBlur={saveName} onSubmitEditing={saveName} />
       <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
         <Button
+          icon={Icons.study}
           title={t('deck.study', { count: cards.length })}
           style={{ flex: 1 }}
           disabled={cards.length === 0}
           onPress={() => router.push({ pathname: '/session/[deckId]', params: { deckId: id } })}
         />
         <Button
+          icon={Icons.add}
           title={t('deck.addCard')}
           variant="secondary"
           style={{ flex: 1 }}
@@ -89,7 +92,7 @@ export default function DeckScreen() {
         />
       ))}
       {cards.length > 0 ? <T variant="caption">{t('deck.hint')}</T> : null}
-      <Button title={t('deck.delete')} variant="danger" onPress={removeDeck} style={{ marginTop: Spacing.xl }} />
+      <Button icon={Icons.delete} title={t('deck.delete')} variant="danger" onPress={removeDeck} style={{ marginTop: Spacing.xl }} />
     </Screen>
   );
 }

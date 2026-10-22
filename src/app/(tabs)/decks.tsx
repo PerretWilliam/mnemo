@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 
 import { Button, Empty, Input, Row, Screen, useFocusData } from '@/components/ui';
+import { Icons } from '@/constants/icons';
 import { deckColor, Spacing } from '@/constants/theme';
 import { createDeck, listDecks } from '@/db';
 import { useI18n } from '@/i18n';
@@ -34,9 +35,9 @@ export default function DecksScreen() {
             returnKeyType="done"
           />
         </View>
-        <Button title={t('decks.add')} onPress={add} disabled={!name.trim()} />
+        <Button icon={Icons.add} title={t('decks.add')} onPress={add} disabled={!name.trim()} />
       </View>
-      <Button title={`✨ ${t('decks.generateAi')}`} variant="secondary" onPress={() => router.push('/ai-prompt')} />
+      <Button icon={Icons.ai} title={t('decks.generateAi')} variant="secondary" onPress={() => router.push('/ai-prompt')} />
       {decks?.length === 0 ? <Empty text={t('decks.empty')} /> : null}
       {decks?.map((d) => (
         <Row
