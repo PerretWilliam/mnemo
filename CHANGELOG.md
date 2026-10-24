@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/PerretWilliam/flashcard/compare/v0.3.0...v0.3.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* visible swipe labels, real icons and chart day details ([#10](https://github.com/PerretWilliam/flashcard/issues/10)) ([4f1a8db](https://github.com/PerretWilliam/flashcard/commit/4f1a8db3ad46fadf60e8d5f119b0ff868b1b3d16))
+
 ## [0.3.0](https://github.com/PerretWilliam/flashcard/compare/v0.2.0...v0.3.0) (2026-10-22)
 
 
