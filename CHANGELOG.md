@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/PerretWilliam/flashcard/compare/v0.3.1...v0.3.2) (2026-10-24)
+
+
+### Bug Fixes
+
+* align Expo package patches with SDK 58 requirements ([61c607e](https://github.com/PerretWilliam/flashcard/commit/61c607ebfc237ebaed314d1f758e61ab8c330253))
+
 ## [0.3.1](https://github.com/PerretWilliam/flashcard/compare/v0.3.0...v0.3.1) (2026-10-22)
 
 
