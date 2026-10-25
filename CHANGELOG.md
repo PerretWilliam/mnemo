@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/PerretWilliam/mnemo/compare/v0.4.0...v0.5.0) (2026-10-25)
+
+
+### Features
+
+* draw weighted random cards per study session ([#16](https://github.com/PerretWilliam/mnemo/issues/16)) ([a7c8a0e](https://github.com/PerretWilliam/mnemo/commit/a7c8a0ed414e22185bc9f65782dd2e26320c54d6))
+
 ## [0.4.0](https://github.com/PerretWilliam/mnemo/compare/v0.3.2...v0.4.0) (2026-10-25)
 
 
