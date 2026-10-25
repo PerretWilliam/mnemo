@@ -6,9 +6,10 @@ import { Pressable, View } from 'react-native';
 import { Button, confirm, Empty, Icon, Input, Loading, Screen, T, useFocusData } from '@/components/ui';
 import { Icons } from '@/constants/icons';
 import { Spacing } from '@/constants/theme';
-import { createFolder, deleteFolder, getFolder, listFolders, updateFolder } from '@/db';
+import { createFolder, deleteFolder, getFolder, getSessionSize, listFolders, updateFolder } from '@/db';
 import { useI18n } from '@/i18n';
 import { FOLDER_COLORS, nextFolderColor } from '@/lib/folders';
+import { sessionLength } from '@/lib/sampling';
 
 const SWATCH = 44;
 
@@ -89,7 +90,18 @@ export default function FolderScreen() {
           })}
         </View>
       </View>
-      {folder ? <T variant="caption">{tp('count.decks', folder.deckCount)}</T> : null}
+      {folder ? (
+        <>
+          <T variant="caption">{tp('count.decks', folder.deckCount)}</T>
+          <Button
+            icon={Icons.study}
+            title={t('deck.study', { count: sessionLength(folder.cardCount, getSessionSize()) })}
+            variant="secondary"
+            disabled={folder.cardCount === 0}
+            onPress={() => router.push({ pathname: '/session/folder/[folderId]', params: { folderId: folder.id } })}
+          />
+        </>
+      ) : null}
       <Button icon={Icons.save} title={t('common.save')} onPress={save} disabled={!shownName.trim()} />
       {folder ? (
         <Button icon={Icons.delete} title={t('folder.delete')} variant="danger" onPress={remove} style={{ marginTop: Spacing.xl }} />

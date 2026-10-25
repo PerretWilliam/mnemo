@@ -1,11 +1,13 @@
 // SQLite storage: 4 tables (folders, decks, cards, sessions), no ORM.
 // Every function takes the db from `useSQLiteContext()`.
 import type { SQLiteDatabase } from 'expo-sqlite';
+import Storage from 'expo-sqlite/kv-store';
 
 import type { CardInput, ExchangeFile, HistoryInput } from '@/lib/format';
 import { nextFolderColor } from '@/lib/folders';
+import type { CardStat } from '@/lib/sampling';
 
-export type Folder = { id: number; name: string; color: string; createdAt: number; deckCount: number };
+export type Folder = { id: number; name: string; color: string; createdAt: number; deckCount: number; cardCount: number };
 export type Deck = {
   id: number;
   name: string;
@@ -27,7 +29,7 @@ export type Session = {
   wrong: number;
 };
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 /** Runs on app start through `<SQLiteProvider onInit>`. Bump SCHEMA_VERSION and add a step to migrate. */
 export async function migrate(db: SQLiteDatabase) {
@@ -78,22 +80,50 @@ export async function migrate(db: SQLiteDatabase) {
       `);
     });
   }
+  if (current < 3) {
+    // Per-card answer stats, used to draw missed / never-seen cards more often.
+    await db.execAsync(`
+      CREATE TABLE card_stats (
+        card_id INTEGER PRIMARY KEY NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+        seen INTEGER NOT NULL,
+        streak INTEGER NOT NULL,
+        last_at INTEGER NOT NULL
+      );
+    `);
+  }
   await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+}
+
+// --- Study settings ---
+
+/** Options for "cards per session"; 0 means every card. */
+export const SESSION_SIZES = [10, 20, 30, 40, 50, 100, 0];
+const DEFAULT_SESSION_SIZE = 20;
+
+export function getSessionSize(): number {
+  const stored = Storage.getItemSync('sessionSize'); // null (never set) must not read as 0 = all
+  return stored !== null && SESSION_SIZES.includes(Number(stored)) ? Number(stored) : DEFAULT_SESSION_SIZE;
+}
+
+export function setSessionSize(size: number) {
+  Storage.setItemSync('sessionSize', String(size));
 }
 
 // --- Folders ---
 
 export function listFolders(db: SQLiteDatabase) {
   return db.getAllAsync<Folder>(`
-    SELECT f.id, f.name, f.color, f.created_at AS createdAt, COUNT(d.id) AS deckCount
-    FROM folders f LEFT JOIN decks d ON d.folder_id = f.id
-    GROUP BY f.id ORDER BY f.name COLLATE NOCASE`);
+    SELECT f.id, f.name, f.color, f.created_at AS createdAt,
+      (SELECT COUNT(*) FROM decks WHERE folder_id = f.id) AS deckCount,
+      (SELECT COUNT(*) FROM cards WHERE deck_id IN (SELECT id FROM decks WHERE folder_id = f.id)) AS cardCount
+    FROM folders f ORDER BY f.name COLLATE NOCASE`);
 }
 
 export function getFolder(db: SQLiteDatabase, id: number) {
   return db.getFirstAsync<Folder>(
     `SELECT f.id, f.name, f.color, f.created_at AS createdAt,
-       (SELECT COUNT(*) FROM decks WHERE folder_id = f.id) AS deckCount
+       (SELECT COUNT(*) FROM decks WHERE folder_id = f.id) AS deckCount,
+       (SELECT COUNT(*) FROM cards WHERE deck_id IN (SELECT id FROM decks WHERE folder_id = f.id)) AS cardCount
      FROM folders f WHERE f.id = ?`,
     id,
   );
@@ -171,6 +201,15 @@ export async function listCards(db: SQLiteDatabase, deckId: number) {
   return rows.map(toCard);
 }
 
+/** Cards of every deck in a folder, for studying a whole folder at once. */
+export async function listFolderCards(db: SQLiteDatabase, folderId: number) {
+  const rows = await db.getAllAsync<CardRow>(
+    `SELECT ${CARD_COLS} FROM cards WHERE deck_id IN (SELECT id FROM decks WHERE folder_id = ?) ORDER BY id`,
+    folderId,
+  );
+  return rows.map(toCard);
+}
+
 export async function getCard(db: SQLiteDatabase, id: number) {
   const row = await db.getFirstAsync<CardRow>(`SELECT ${CARD_COLS} FROM cards WHERE id = ?`, id);
   return row ? toCard(row) : null;
@@ -205,6 +244,32 @@ export async function deleteCard(db: SQLiteDatabase, id: number) {
 }
 
 // --- Sessions ---
+
+export async function getCardStats(db: SQLiteDatabase) {
+  const rows = await db.getAllAsync<CardStat & { cardId: number }>(
+    'SELECT card_id AS cardId, seen, streak FROM card_stats',
+  );
+  return new Map(rows.map((r) => [r.cardId, { seen: r.seen, streak: r.streak }]));
+}
+
+/** Updates the stats of the answered cards (one write transaction): a miss resets the streak. */
+export async function recordAnswers(db: SQLiteDatabase, answers: { cardId: number; correct: boolean }[]) {
+  const now = Date.now();
+  await db.withTransactionAsync(async () => {
+    for (const a of answers) {
+      await db.runAsync(
+        `INSERT INTO card_stats (card_id, seen, streak, last_at) VALUES (?, 1, ?, ?)
+         ON CONFLICT(card_id) DO UPDATE SET
+           seen = seen + 1,
+           streak = CASE WHEN excluded.streak > 0 THEN streak + 1 ELSE 0 END,
+           last_at = excluded.last_at`,
+        a.cardId,
+        a.correct ? 1 : 0,
+        now,
+      );
+    }
+  });
+}
 
 export async function saveSession(
   db: SQLiteDatabase,
@@ -327,5 +392,5 @@ export async function exportExchange(db: SQLiteDatabase, withHistory: boolean): 
 }
 
 export async function wipeAll(db: SQLiteDatabase) {
-  await db.execAsync('DELETE FROM sessions; DELETE FROM cards; DELETE FROM decks; DELETE FROM folders;');
+  await db.execAsync('DELETE FROM sessions; DELETE FROM card_stats; DELETE FROM cards; DELETE FROM decks; DELETE FROM folders;');
 }

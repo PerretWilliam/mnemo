@@ -12,7 +12,9 @@ with **swipe gestures**, and let ChatGPT or Claude **generate whole decks** for 
 - **Markdown + KaTeX**: `$x^2$` inline and `$$\int_0^1 f$$` block math, rendered fully offline.
 - **Cloze cards**: `A primitive of $\cos$ is {{c::$\sin$}}.` hides the part in braces.
 - **Study sessions**: tap to flip, swipe **left = got it**, **right = missed**, ✓ / ✗ buttons,
-  undo, haptic feedback, and an end-of-session recap with "review missed".
+  undo, haptic feedback, and an end-of-session recap with "review missed". Sessions draw a
+  limited number of cards (10-100, set in Settings) from a deck or a whole folder, favoring cards
+  you missed or never studied.
 - **Import / export**: JSON files, paste from clipboard, share sheet; full backups include history.
   Import validates every card and lists errors by card number.
 - **AI generator**: fill in topic, deck name, count, card types, language and optional notes;

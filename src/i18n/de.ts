@@ -68,6 +68,7 @@ export const de: Dictionary = {
   'folder.deleteTitle': 'Ordner löschen?',
   'folder.deleteMessage': '„{name}“ wird gelöscht. Die Stapel bleiben erhalten und liegen danach außerhalb des Ordners.',
   'folder.missing': 'Dieser Ordner existiert nicht mehr.',
+  'folder.study': 'Diesen Ordner lernen',
 
   'editor.title': 'Karte',
   'editor.newTitle': 'Neue Karte',
@@ -95,7 +96,7 @@ export const de: Dictionary = {
   'session.complete': 'Sitzung beendet',
   'session.score': '{correct} richtig · {missed} falsch',
   'session.reviewMissed': 'Falsche wiederholen ({count})',
-  'session.restart': 'Ganzen Stapel neu starten',
+  'session.restart': 'Neue Sitzung',
   'session.missedCards': 'Falsche Karten',
 
   'history.title': 'Verlauf',
@@ -104,6 +105,9 @@ export const de: Dictionary = {
   'settings.title': 'Einstellungen',
   'settings.language': 'App-Sprache',
   'settings.languageSystem': 'Systemsprache',
+  'settings.sessionSize': 'Karten pro Sitzung',
+  'settings.sessionAll': 'Alle Karten',
+  'settings.sessionSizeHelp': 'Die Karten werden zufällig gezogen. Verpasste und noch nie gelernte Karten kommen öfter als bekannte.',
   'settings.import': 'Importieren',
   'settings.importHelp': 'JSON-Format: siehe KI-Generator für die genaue Struktur. Fehler werden pro Karte angezeigt.',
   'settings.importFile': 'JSON-Datei importieren',

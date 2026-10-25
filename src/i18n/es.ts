@@ -68,6 +68,7 @@ export const es: Dictionary = {
   'folder.deleteTitle': '¿Eliminar la carpeta?',
   'folder.deleteMessage': 'Se eliminará "{name}". Sus mazos se conservan y salen de la carpeta.',
   'folder.missing': 'Esta carpeta ya no existe.',
+  'folder.study': 'Estudiar esta carpeta',
 
   'editor.title': 'Tarjeta',
   'editor.newTitle': 'Nueva tarjeta',
@@ -95,7 +96,7 @@ export const es: Dictionary = {
   'session.complete': 'Sesión terminada',
   'session.score': '{correct} aciertos · {missed} fallos',
   'session.reviewMissed': 'Repasar falladas ({count})',
-  'session.restart': 'Reiniciar todo el mazo',
+  'session.restart': 'Nueva sesión',
   'session.missedCards': 'Tarjetas falladas',
 
   'history.title': 'Historial',
@@ -104,6 +105,9 @@ export const es: Dictionary = {
   'settings.title': 'Ajustes',
   'settings.language': 'Idioma de la app',
   'settings.languageSystem': 'Idioma del sistema',
+  'settings.sessionSize': 'Tarjetas por sesión',
+  'settings.sessionAll': 'Todas las tarjetas',
+  'settings.sessionSizeHelp': 'Las tarjetas se eligen al azar. Las falladas o nunca estudiadas salen más a menudo que las que ya dominas.',
   'settings.import': 'Importar',
   'settings.importHelp':
     'Formato JSON: consulta el generador IA para la estructura exacta. Los errores se muestran por tarjeta.',
