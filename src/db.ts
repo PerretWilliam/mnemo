@@ -1,22 +1,33 @@
-// SQLite storage: 3 tables (decks, cards, sessions), no ORM.
+// SQLite storage: 4 tables (folders, decks, cards, sessions), no ORM.
 // Every function takes the db from `useSQLiteContext()`.
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { CardInput, ExchangeFile, HistoryInput } from '@/lib/format';
+import { nextFolderColor } from '@/lib/folders';
 
-export type Deck = { id: number; name: string; createdAt: number; cardCount: number };
+export type Folder = { id: number; name: string; color: string; createdAt: number; deckCount: number };
+export type Deck = {
+  id: number;
+  name: string;
+  createdAt: number;
+  cardCount: number;
+  folderId: number | null;
+  /** Color of the deck's folder; null when unfiled. Resolve it with `deckColor()`. */
+  folderColor: string | null;
+};
 export type Card = CardInput & { id: number; deckId: number; updatedAt: number };
 export type Session = {
   id: number;
   deckId: number;
   deckName: string;
+  folderColor: string | null;
   startedAt: number;
   endedAt: number;
   correct: number;
   wrong: number;
 };
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 /** Runs on app start through `<SQLiteProvider onInit>`. Bump SCHEMA_VERSION and add a step to migrate. */
 export async function migrate(db: SQLiteDatabase) {
@@ -52,29 +63,92 @@ export async function migrate(db: SQLiteDatabase) {
       CREATE INDEX sessions_ended ON sessions(ended_at);
     `);
   }
+  if (current < 2) {
+    // Deleting a folder unfiles its decks (SET NULL) instead of deleting them.
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE folders (
+          id INTEGER PRIMARY KEY NOT NULL,
+          name TEXT NOT NULL,
+          color TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+        ALTER TABLE decks ADD COLUMN folder_id INTEGER REFERENCES folders(id) ON DELETE SET NULL;
+        CREATE INDEX decks_folder ON decks(folder_id);
+      `);
+    });
+  }
   await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+}
+
+// --- Folders ---
+
+export function listFolders(db: SQLiteDatabase) {
+  return db.getAllAsync<Folder>(`
+    SELECT f.id, f.name, f.color, f.created_at AS createdAt, COUNT(d.id) AS deckCount
+    FROM folders f LEFT JOIN decks d ON d.folder_id = f.id
+    GROUP BY f.id ORDER BY f.name COLLATE NOCASE`);
+}
+
+export function getFolder(db: SQLiteDatabase, id: number) {
+  return db.getFirstAsync<Folder>(
+    `SELECT f.id, f.name, f.color, f.created_at AS createdAt,
+       (SELECT COUNT(*) FROM decks WHERE folder_id = f.id) AS deckCount
+     FROM folders f WHERE f.id = ?`,
+    id,
+  );
+}
+
+export async function createFolder(db: SQLiteDatabase, name: string, color: string) {
+  const r = await db.runAsync('INSERT INTO folders (name, color, created_at) VALUES (?, ?, ?)', name.trim(), color, Date.now());
+  return r.lastInsertRowId;
+}
+
+export async function updateFolder(db: SQLiteDatabase, id: number, name: string, color: string) {
+  await db.runAsync('UPDATE folders SET name = ?, color = ? WHERE id = ?', name.trim(), color, id);
+}
+
+/** Decks of the folder are kept and become unfiled. */
+export async function deleteFolder(db: SQLiteDatabase, id: number) {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('UPDATE decks SET folder_id = NULL WHERE folder_id = ?', id);
+    await db.runAsync('DELETE FROM folders WHERE id = ?', id);
+  });
+}
+
+export async function setDeckFolder(db: SQLiteDatabase, deckId: number, folderId: number | null) {
+  await db.runAsync('UPDATE decks SET folder_id = ? WHERE id = ?', folderId, deckId);
 }
 
 // --- Decks ---
 
 export function listDecks(db: SQLiteDatabase) {
   return db.getAllAsync<Deck>(`
-    SELECT d.id, d.name, d.created_at AS createdAt, COUNT(c.id) AS cardCount
-    FROM decks d LEFT JOIN cards c ON c.deck_id = d.id
+    SELECT d.id, d.name, d.created_at AS createdAt, COUNT(c.id) AS cardCount,
+      d.folder_id AS folderId, f.color AS folderColor
+    FROM decks d
+    LEFT JOIN cards c ON c.deck_id = d.id
+    LEFT JOIN folders f ON f.id = d.folder_id
     GROUP BY d.id ORDER BY d.name COLLATE NOCASE`);
 }
 
 export function getDeck(db: SQLiteDatabase, id: number) {
   return db.getFirstAsync<Deck>(
     `SELECT d.id, d.name, d.created_at AS createdAt,
-       (SELECT COUNT(*) FROM cards WHERE deck_id = d.id) AS cardCount
-     FROM decks d WHERE d.id = ?`,
+       (SELECT COUNT(*) FROM cards WHERE deck_id = d.id) AS cardCount,
+       d.folder_id AS folderId, f.color AS folderColor
+     FROM decks d LEFT JOIN folders f ON f.id = d.folder_id WHERE d.id = ?`,
     id,
   );
 }
 
-export async function createDeck(db: SQLiteDatabase, name: string) {
-  const r = await db.runAsync('INSERT INTO decks (name, created_at) VALUES (?, ?)', name.trim(), Date.now());
+export async function createDeck(db: SQLiteDatabase, name: string, folderId: number | null = null) {
+  const r = await db.runAsync(
+    'INSERT INTO decks (name, created_at, folder_id) VALUES (?, ?, ?)',
+    name.trim(),
+    Date.now(),
+    folderId,
+  );
   return r.lastInsertRowId;
 }
 
@@ -148,9 +222,9 @@ export async function saveSession(
 
 export function listSessions(db: SQLiteDatabase, limit = 500) {
   return db.getAllAsync<Session>(
-    `SELECT s.id, s.deck_id AS deckId, d.name AS deckName, s.started_at AS startedAt,
-       s.ended_at AS endedAt, s.correct, s.wrong
-     FROM sessions s JOIN decks d ON d.id = s.deck_id
+    `SELECT s.id, s.deck_id AS deckId, d.name AS deckName, f.color AS folderColor,
+       s.started_at AS startedAt, s.ended_at AS endedAt, s.correct, s.wrong
+     FROM sessions s JOIN decks d ON d.id = s.deck_id LEFT JOIN folders f ON f.id = d.folder_id
      ORDER BY s.ended_at DESC LIMIT ?`,
     limit,
   );
@@ -181,9 +255,27 @@ export async function importExchange(
 
   let cards = 0;
   await db.withTransactionAsync(async () => {
+    // Folders are matched by name (case-insensitive) and created on demand. An existing folder keeps its color.
+    const folders = await listFolders(db);
+    const folderIds = new Map(folders.map((f) => [f.name.toLowerCase(), f.id]));
+    const colors = folders.map((f) => f.color);
+    const ensureFolder = async (name: string) => {
+      const key = name.toLowerCase();
+      let id = folderIds.get(key);
+      if (id === undefined) {
+        const color = data.folders?.find((f) => f.name.toLowerCase() === key)?.color ?? nextFolderColor(colors);
+        colors.push(color);
+        id = await createFolder(db, name, color);
+        folderIds.set(key, id);
+      }
+      return id;
+    };
+    for (const f of data.folders ?? []) await ensureFolder(f.name);
+
     const idsByName = new Map<string, number>();
     for (const { deck, targetId } of plan) {
-      const deckId = targetId ?? (await createDeck(db, deck.name));
+      const folderId = targetId === null && deck.folder ? await ensureFolder(deck.folder) : null;
+      const deckId = targetId ?? (await createDeck(db, deck.name, folderId));
       idsByName.set(deck.name.toLowerCase(), deckId);
       for (const c of deck.cards) await createCard(db, deckId, c);
       cards += deck.cards.length;
@@ -204,16 +296,22 @@ export async function importExchange(
 }
 
 export async function exportExchange(db: SQLiteDatabase, withHistory: boolean): Promise<ExchangeFile> {
-  const decks = await listDecks(db);
+  const [decks, folders] = await Promise.all([listDecks(db), listFolders(db)]);
+  const folderNames = new Map(folders.map((f) => [f.id, f.name]));
   const out: ExchangeFile = {
     version: 1,
     decks: await Promise.all(
-      decks.map(async (d) => ({
-        name: d.name,
-        cards: (await listCards(db, d.id)).map(({ front, back, tags }) => ({ front, back, tags })),
-      })),
+      decks.map(async (d) => {
+        const folder = d.folderId === null ? undefined : folderNames.get(d.folderId);
+        return {
+          name: d.name,
+          ...(folder ? { folder } : {}),
+          cards: (await listCards(db, d.id)).map(({ front, back, tags }) => ({ front, back, tags })),
+        };
+      }),
     ),
   };
+  if (folders.length > 0) out.folders = folders.map(({ name, color }) => ({ name, color }));
   if (withHistory) {
     out.history = (await listSessions(db, -1)).map(
       (s): HistoryInput => ({
@@ -229,5 +327,5 @@ export async function exportExchange(db: SQLiteDatabase, withHistory: boolean): 
 }
 
 export async function wipeAll(db: SQLiteDatabase) {
-  await db.execAsync('DELETE FROM sessions; DELETE FROM cards; DELETE FROM decks;');
+  await db.execAsync('DELETE FROM sessions; DELETE FROM cards; DELETE FROM decks; DELETE FROM folders;');
 }

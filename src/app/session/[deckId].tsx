@@ -35,6 +35,8 @@ export default function SessionScreen() {
   const { t } = useI18n();
   const deckId = Number(useLocalSearchParams<{ deckId: string }>().deckId);
   const [deckName, setDeckName] = useState('');
+  const [folderColor, setFolderColor] = useState<string | null>(null);
+  const color = deckColor(folderColor, theme);
   const [round, setRound] = useState<Card[] | null>(null);
   const [results, setResults] = useState<Result[]>([]);
   const [flipped, setFlipped] = useState(false);
@@ -50,7 +52,10 @@ export default function SessionScreen() {
   };
 
   useEffect(() => {
-    getDeck(db, deckId).then((d) => setDeckName(d?.name ?? ''));
+    getDeck(db, deckId).then((d) => {
+      setDeckName(d?.name ?? '');
+      setFolderColor(d?.folderColor ?? null);
+    });
     listCards(db, deckId).then(start);
   }, [db, deckId]);
 
@@ -86,7 +91,7 @@ export default function SessionScreen() {
     <Screen scroll={false}>
       <Stack.Screen options={{ title: deckName }} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <T variant="label" color={deckColor(deckId)}>
+        <T variant="label" color={color}>
           {results.length + 1} / {round.length}
         </T>
         <T variant="caption">{t('session.swipeHint')}</T>
@@ -95,14 +100,14 @@ export default function SessionScreen() {
         <View
           style={[
             styles.progressFill,
-            { width: `${(results.length / round.length) * 100}%`, backgroundColor: deckColor(deckId) },
+            { width: `${(results.length / round.length) * 100}%`, backgroundColor: color },
           ]}
         />
       </View>
       <SwipeCard
         key={`${card.id}-${results.length}`}
         card={card}
-        color={deckColor(deckId)}
+        color={color}
         flipped={flipped}
         onFlip={() => setFlipped((f) => !f)}
         onSwipe={record}

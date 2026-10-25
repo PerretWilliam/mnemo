@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { isCloze, renderCloze, splitCloze, stripCloze } from './cloze.ts';
+import { FOLDER_COLORS, groupByFolder, isHexColor, nextFolderColor } from './folders.ts';
 import { parseExchange, restoreLatex } from './format.ts';
 import { buildPrompt } from './prompt.ts';
 import { dailyReviews, streak, successRate } from './stats.ts';
@@ -99,10 +100,73 @@ test('format: rejects wrong version and garbage', () => {
   assert.equal(parseExchange('not json').data, null);
 });
 
+test('format: reads deck folders and the folders list; old files stay unfiled', () => {
+  const raw = JSON.stringify({
+    version: 1,
+    folders: [{ name: ' AC03 ', color: '#10B981' }],
+    decks: [
+      { name: 'A', folder: ' AC03 ', cards: [{ front: 'q', back: 'a' }] },
+      { name: 'B', cards: [{ front: 'q', back: 'a' }] },
+    ],
+  });
+  const r = parseExchange(raw);
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.data?.folders, [{ name: 'AC03', color: '#10B981' }]);
+  assert.equal(r.data?.decks[0].folder, 'AC03');
+  assert.ok(!('folder' in r.data!.decks[1]));
+  assert.equal(parseExchange('{"version":1,"decks":[{"name":"D","cards":[{"front":"Q","back":"A"}]}]}').data?.folders, undefined);
+});
+
+test('format: reports bad folder fields without dropping the deck', () => {
+  const raw = JSON.stringify({
+    version: 1,
+    folders: [{ name: 'ok', color: '#123456' }, { name: 'bad', color: 'red' }, { color: '#123456' }],
+    decks: [{ name: 'D', folder: 3, cards: [{ front: 'q', back: 'a' }] }],
+  });
+  const r = parseExchange(raw);
+  assert.equal(r.data?.decks.length, 1);
+  assert.deepEqual(r.data?.folders, [{ name: 'ok', color: '#123456' }]);
+  assert.deepEqual(r.errors, [
+    { code: 'deckFolder', params: { deck: 'D' } },
+    { code: 'folderEntry', params: { entry: 2 } },
+    { code: 'folderEntry', params: { entry: 3 } },
+  ]);
+  assert.equal(parseExchange('{"version":1,"folders":{},"decks":[{"name":"D","cards":[]}]}').errors[0].code, 'foldersArray');
+});
+
+test('folders: palette color is the least used, hex validation', () => {
+  assert.equal(nextFolderColor([]), FOLDER_COLORS[0]);
+  assert.equal(nextFolderColor([FOLDER_COLORS[0].toLowerCase(), FOLDER_COLORS[1]]), FOLDER_COLORS[2]);
+  assert.equal(nextFolderColor(FOLDER_COLORS), FOLDER_COLORS[0]);
+  assert.equal(nextFolderColor([...FOLDER_COLORS, FOLDER_COLORS[0]]), FOLDER_COLORS[1]);
+  assert.ok(isHexColor('#aBc123'));
+  assert.ok(!isHexColor('#abc') && !isHexColor('abc123') && !isHexColor(42));
+});
+
+test('folders: groups decks by folder, keeps empty folders, unfiled last', () => {
+  const folders = [{ id: 1 }, { id: 2 }];
+  const decks = [
+    { name: 'a', folderId: 2 },
+    { name: 'b', folderId: null },
+    { name: 'c', folderId: 2 },
+    { name: 'd', folderId: 99 }, // dangling reference: treated as unfiled
+  ];
+  const s = groupByFolder(folders, decks);
+  assert.deepEqual(s.map((x) => [x.folder?.id ?? null, x.decks.map((d) => d.name)]), [
+    [1, []],
+    [2, ['a', 'c']],
+    [null, ['b', 'd']],
+  ]);
+  assert.equal(groupByFolder([], []).length, 0);
+});
+
 test('prompt: includes options and optional notes', () => {
   const p = buildPrompt({ topic: 'Derivatives', deckName: 'Calc', count: 10, types: 'qa', language: 'French', notes: 'my notes' });
   assert.match(p, /10 cards about: Derivatives/);
   assert.match(p, /"name":"Calc"/);
   assert.match(p, /my notes/);
   assert.doesNotMatch(p, /\{\{c::/);
+  assert.doesNotMatch(p, /"folder"/);
+  const f = buildPrompt({ topic: 't', deckName: 'Calc', folder: ' MA101 ', count: 5, types: 'qa', language: 'French' });
+  assert.match(f, /"name":"Calc","folder":"MA101","cards"/);
 });

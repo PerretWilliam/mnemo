@@ -1,8 +1,10 @@
 // JSON exchange format shared by import, export and AI generation.
 // See docs/FORMAT.md for the spec.
+import { isHexColor } from './folders.ts';
 
 export type CardInput = { front: string; back: string; tags: string[] };
-export type DeckInput = { name: string; cards: CardInput[] };
+export type DeckInput = { name: string; folder?: string; cards: CardInput[] };
+export type FolderInput = { name: string; color: string };
 export type HistoryInput = {
   deck: string;
   startedAt: string; // ISO 8601
@@ -10,7 +12,7 @@ export type HistoryInput = {
   correct: number;
   wrong: number;
 };
-export type ExchangeFile = { version: 1; decks: DeckInput[]; history?: HistoryInput[] };
+export type ExchangeFile = { version: 1; decks: DeckInput[]; folders?: FolderInput[]; history?: HistoryInput[] };
 
 /** Problems are codes + params so the UI can translate them (keys `issue.<code>`). */
 export type IssueCode =
@@ -20,6 +22,9 @@ export type IssueCode =
   | 'decksArray'
   | 'deckName'
   | 'cardsArray'
+  | 'deckFolder'
+  | 'foldersArray'
+  | 'folderEntry'
   | 'front'
   | 'backType'
   | 'tags'
@@ -147,10 +152,29 @@ export function parseExchange(raw: string): ParseResult {
       }
       cards.push({ front, back, tags: ((card.tags as string[] | undefined) ?? []).map((t) => t.trim()).filter(Boolean) });
     });
-    decks.push({ name, cards });
+    let folder: string | undefined;
+    if (deck.folder !== undefined) {
+      if (isStr(deck.folder)) folder = deck.folder.trim() || undefined;
+      else errors.push({ code: 'deckFolder', params: { deck: name } });
+    }
+    decks.push({ name, ...(folder ? { folder } : {}), cards });
   });
 
   if (latexFixes > 0) warnings.push({ code: 'restoredLatex', params: { count: latexFixes } });
+
+  let folders: FolderInput[] | undefined;
+  if (root.folders !== undefined) {
+    if (!Array.isArray(root.folders)) {
+      errors.push({ code: 'foldersArray' });
+    } else {
+      folders = [];
+      root.folders.forEach((f: unknown, fi) => {
+        const e = (f ?? {}) as Record<string, unknown>;
+        if (isNonEmpty(e.name) && isHexColor(e.color)) folders!.push({ name: e.name.trim(), color: e.color });
+        else errors.push({ code: 'folderEntry', params: { entry: fi + 1 } });
+      });
+    }
+  }
 
   let history: HistoryInput[] | undefined;
   if (root.history !== undefined) {
@@ -170,5 +194,9 @@ export function parseExchange(raw: string): ParseResult {
   }
 
   if (decks.length === 0) return { data: null, errors, warnings };
-  return { data: { version: 1, decks, ...(history ? { history } : {}) }, errors, warnings };
+  return {
+    data: { version: 1, decks, ...(folders?.length ? { folders } : {}), ...(history ? { history } : {}) },
+    errors,
+    warnings,
+  };
 }

@@ -48,6 +48,7 @@ function Navigation() {
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="deck/[id]" options={{ title: '' }} />
+        <Stack.Screen name="folder/[id]" options={{ title: '' }} />
         <Stack.Screen name="card/[id]" options={{ title: t('editor.title') }} />
         <Stack.Screen name="session/[deckId]" options={{ title: t('session.title') }} />
         <Stack.Screen name="ai-prompt" options={{ title: t('ai.title') }} />

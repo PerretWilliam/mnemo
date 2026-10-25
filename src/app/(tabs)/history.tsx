@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { Empty, Row, Screen, useFocusData } from '@/components/ui';
 import { deckColor } from '@/constants/theme';
 import { listSessions } from '@/db';
+import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 
 const formatDuration = (ms: number) => {
@@ -13,6 +14,7 @@ const formatDuration = (ms: number) => {
 
 export default function HistoryScreen() {
   const db = useSQLiteContext();
+  const theme = useTheme();
   const { t, lang } = useI18n();
   const [sessions] = useFocusData(useCallback(() => listSessions(db), [db]));
 
@@ -26,7 +28,7 @@ export default function HistoryScreen() {
           <Row
             key={s.id}
             title={s.deckName}
-            accent={deckColor(s.deckId)}
+            accent={deckColor(s.folderColor, theme)}
             subtitle={`${new Date(s.endedAt).toLocaleString(lang)} · ${formatDuration(s.endedAt - s.startedAt)}`}
             right={`${s.correct}/${total} · ${pct}%`}
           />

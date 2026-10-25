@@ -20,6 +20,7 @@ export default function AiPromptScreen() {
   const { t, lang } = i18n;
   const [topic, setTopic] = useState('');
   const [deckName, setDeckName] = useState('');
+  const [folder, setFolder] = useState('');
   const [count, setCount] = useState('20');
   const [types, setTypes] = useState<CardTypes>('both');
   // Default to the app language; the prompt itself always names the language in English.
@@ -28,7 +29,7 @@ export default function AiPromptScreen() {
 
   const n = Number.parseInt(count, 10);
   const ready = topic.trim() !== '' && deckName.trim() !== '' && n > 0 && n <= 200;
-  const prompt = () => buildPrompt({ topic: topic.trim(), deckName: deckName.trim(), count: n, types, language, notes });
+  const prompt = () => buildPrompt({ topic: topic.trim(), deckName: deckName.trim(), folder, count: n, types, language, notes });
 
   const copy = async () => {
     await Clipboard.setStringAsync(prompt());
@@ -48,6 +49,7 @@ export default function AiPromptScreen() {
     <Screen>
       <Input label={t('ai.topic')} value={topic} onChangeText={setTopic} placeholder={t('ai.topicPlaceholder')} />
       <Input label={t('ai.deckName')} value={deckName} onChangeText={setDeckName} placeholder={t('ai.deckPlaceholder')} />
+      <Input label={t('ai.folder')} value={folder} onChangeText={setFolder} placeholder={t('ai.folderPlaceholder')} />
       <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
         <View style={{ flex: 2 }}>
           <Select label={t('ai.language')} value={language} options={CARD_LANGUAGES} onChange={setLanguage} />
