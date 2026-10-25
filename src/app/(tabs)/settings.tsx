@@ -1,11 +1,12 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import { useState } from 'react';
 import { Alert } from 'react-native';
 
 import { Button, confirm, Screen, Select, Surface, T } from '@/components/ui';
 import { Icons } from '@/constants/icons';
-import { wipeAll } from '@/db';
+import { getSessionSize, SESSION_SIZES, setSessionSize, wipeAll } from '@/db';
 import { useTheme } from '@/hooks/use-theme';
 import { LANGUAGES, useI18n, type Lang, type LanguagePref } from '@/i18n';
 import { exportToFile, importFromClipboard, importFromFile } from '@/transfer';
@@ -15,6 +16,7 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const i18n = useI18n();
   const { t, pref, setPref } = i18n;
+  const [size, setSize] = useState(getSessionSize);
 
   // Surface unexpected failures (unreadable file, share sheet error) instead of failing silently.
   const run = (action: () => Promise<unknown>) => () =>
@@ -38,6 +40,18 @@ export default function SettingsScreen() {
     <Screen title={t('settings.title')}>
       <Surface>
         <Select label={t('settings.language')} value={pref} options={languageOptions} onChange={setPref} />
+      </Surface>
+      <Surface>
+        <Select
+          label={t('settings.sessionSize')}
+          value={String(size)}
+          options={SESSION_SIZES.map((n) => ({ value: String(n), label: n === 0 ? t('settings.sessionAll') : String(n) }))}
+          onChange={(v) => {
+            setSessionSize(Number(v));
+            setSize(Number(v));
+          }}
+        />
+        <T variant="caption">{t('settings.sessionSizeHelp')}</T>
       </Surface>
       <Surface>
         <T variant="heading">{t('settings.import')}</T>

@@ -7,6 +7,7 @@ import { isCloze, renderCloze, splitCloze, stripCloze } from './cloze.ts';
 import { FOLDER_COLORS, groupByFolder, isHexColor, nextFolderColor } from './folders.ts';
 import { parseExchange, restoreLatex } from './format.ts';
 import { buildPrompt } from './prompt.ts';
+import { cardWeight, drawCards } from './sampling.ts';
 import { dailyReviews, streak, successRate } from './stats.ts';
 import { interpolate, pluralCategory } from './translate.ts';
 
@@ -158,6 +159,51 @@ test('folders: groups decks by folder, keeps empty folders, unfiled last', () =>
     [null, ['b', 'd']],
   ]);
   assert.equal(groupByFolder([], []).length, 0);
+});
+
+/** Small deterministic PRNG (mulberry32) so the statistical tests never flake. */
+function seeded(seed: number) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return (((t ^ (t >>> 14)) >>> 0) + 1) / 4294967297; // in (0, 1)
+  };
+}
+
+test('sampling: never-seen and missed cards weigh more than mastered ones', () => {
+  assert.ok(cardWeight() > cardWeight({ seen: 3, streak: 1 }));
+  assert.ok(cardWeight({ seen: 3, streak: 0 }) > cardWeight({ seen: 3, streak: 1 }));
+  assert.ok(cardWeight({ seen: 3, streak: 1 }) > cardWeight({ seen: 3, streak: 4 }));
+  assert.ok(cardWeight({ seen: 9, streak: 50 }) > 0); // mastered cards still come back
+});
+
+test('sampling: draws the requested number of distinct cards, 0 means all', () => {
+  const cards = Array.from({ length: 30 }, (_, id) => ({ id }));
+  const rng = seeded(1);
+  const picked = drawCards(cards, new Map(), 10, rng);
+  assert.equal(picked.length, 10);
+  assert.equal(new Set(picked.map((c) => c.id)).size, 10);
+  assert.equal(drawCards(cards, new Map(), 0, rng).length, 30);
+  assert.equal(drawCards(cards, new Map(), 100, rng).length, 30);
+  assert.deepEqual(drawCards([], new Map(), 5), []);
+});
+
+test('sampling: missed and unseen cards are drawn more often than mastered ones', () => {
+  // 10 mastered cards, 5 missed, 5 never seen; sessions of 5.
+  const cards = Array.from({ length: 20 }, (_, id) => ({ id }));
+  const stats = new Map<number, { seen: number; streak: number }>();
+  for (let id = 0; id < 10; id++) stats.set(id, { seen: 6, streak: 5 });
+  for (let id = 10; id < 15; id++) stats.set(id, { seen: 2, streak: 0 });
+  const rng = seeded(42);
+  const hits = { mastered: 0, missed: 0, unseen: 0 };
+  for (let i = 0; i < 2000; i++) {
+    for (const { id } of drawCards(cards, stats, 5, rng)) hits[id < 10 ? 'mastered' : id < 15 ? 'missed' : 'unseen']++;
+  }
+  // Per card: mastered weight 0.2, unseen 3, missed 4.
+  assert.ok(hits.missed / 5 > 4 * (hits.mastered / 10), JSON.stringify(hits));
+  assert.ok(hits.unseen / 5 > 4 * (hits.mastered / 10), JSON.stringify(hits));
+  assert.ok(hits.mastered > 0);
 });
 
 test('prompt: includes options and optional notes', () => {

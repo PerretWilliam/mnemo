@@ -47,7 +47,7 @@ src/app/                 Expo Router routes ONLY (every file is a screen)
   deck/[id].tsx          cards of a deck: search, edit, delete, choose its folder
   folder/[id].tsx        create/edit a folder: name + color (id = "new" to create)
   card/[id].tsx          editor + live preview (id = "new" to create; needs ?deckId=)
-  session/[deckId].tsx   swipe study session + recap
+  session/[deckId].tsx   swipe study session + recap (session/folder/[folderId] re-exports it)
   ai-prompt.tsx          AI prompt generator + clipboard import
 src/components/          ui.tsx (themed primitives, Select dropdown), math-markdown.tsx (WebView renderer)
 src/i18n/                dictionaries (en source, fr, es, de) + I18nProvider / useI18n
@@ -92,6 +92,9 @@ docs/FORMAT.md           JSON exchange format spec
 - AI JSON often has single LaTeX backslashes: `parseExchange` repairs both invalid escapes
   (`\int`) and silently-valid ones (`\frac` -> form feed). Keep tests for this green.
 - Session: **swipe left = correct, swipe right = missed**. Buttons mirror that order.
+- A session is a random sample of N cards (Settings, 0 = all) from a deck or a whole folder.
+  `drawCards` (`src/lib/sampling.ts`) weights cards by their `card_stats` row: missed and
+  never-seen cards are drawn more often than mastered ones. Stats are written when a session ends.
 - Out of scope for now: spaced repetition, multi-device sync, images.
 
 ## Git workflow

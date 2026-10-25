@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { GestureDetector, useExclusiveGestures, usePanGesture, useTapGesture } from 'react-native-gesture-handler';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -11,21 +11,23 @@ import { MathMarkdown } from '@/components/math-markdown';
 import { Button, Icon, Loading, Row, Screen, Surface, T } from '@/components/ui';
 import { Icons } from '@/constants/icons';
 import { deckColor, Radius, Spacing, withAlpha } from '@/constants/theme';
-import { getDeck, listCards, saveSession, type Card } from '@/db';
+import {
+  getCardStats,
+  getDeck,
+  getFolder,
+  getSessionSize,
+  listCards,
+  listFolderCards,
+  recordAnswers,
+  saveSession,
+  type Card,
+} from '@/db';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { answerSource, isCloze, renderCloze, stripCloze } from '@/lib/cloze';
+import { drawCards } from '@/lib/sampling';
 
 const SWIPE_THRESHOLD = 110;
-
-function shuffle<T>(items: T[]): T[] {
-  const a = [...items];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 type Result = { card: Card; correct: boolean };
 
@@ -33,8 +35,11 @@ export default function SessionScreen() {
   const db = useSQLiteContext();
   const theme = useTheme();
   const { t } = useI18n();
-  const deckId = Number(useLocalSearchParams<{ deckId: string }>().deckId);
-  const [deckName, setDeckName] = useState('');
+  // Studies one deck, or a whole folder when mounted by `session/folder/[folderId]`.
+  const params = useLocalSearchParams<{ deckId?: string; folderId?: string }>();
+  const deckId = Number(params.deckId);
+  const folderId = params.folderId === undefined ? null : Number(params.folderId);
+  const [title, setTitle] = useState('');
   const [folderColor, setFolderColor] = useState<string | null>(null);
   const color = deckColor(folderColor, theme);
   const [round, setRound] = useState<Card[] | null>(null);
@@ -44,29 +49,55 @@ export default function SessionScreen() {
   const saved = useRef(false);
 
   const start = (cards: Card[]) => {
-    setRound(shuffle(cards));
+    setRound(cards);
     setResults([]);
     setFlipped(false);
     startedAt.current = Date.now();
     saved.current = false;
   };
 
+  // A fresh random sample (size from Settings); missed and never-seen cards are favored.
+  const draw = useCallback(
+    () =>
+      Promise.all([
+        folderId === null ? listCards(db, deckId) : listFolderCards(db, folderId),
+        getCardStats(db),
+      ]).then(([cards, stats]) => drawCards(cards, stats, getSessionSize())),
+    [db, deckId, folderId],
+  );
+
   useEffect(() => {
-    getDeck(db, deckId).then((d) => {
-      setDeckName(d?.name ?? '');
-      setFolderColor(d?.folderColor ?? null);
-    });
-    listCards(db, deckId).then(start);
-  }, [db, deckId]);
+    if (folderId === null) {
+      getDeck(db, deckId).then((d) => {
+        setTitle(d?.name ?? '');
+        setFolderColor(d?.folderColor ?? null);
+      });
+    } else {
+      getFolder(db, folderId).then((f) => {
+        setTitle(f?.name ?? '');
+        setFolderColor(f?.color ?? null);
+      });
+    }
+    draw().then(start);
+  }, [db, deckId, folderId, draw]);
 
   const finished = round !== null && results.length === round.length;
 
   useEffect(() => {
     if (!finished || saved.current || results.length === 0) return;
     saved.current = true;
-    const correct = results.filter((r) => r.correct).length;
-    saveSession(db, { deckId, startedAt: startedAt.current, endedAt: Date.now(), correct, wrong: results.length - correct });
-  }, [finished, results, db, deckId]);
+    // History is per deck, so a folder session is saved as one entry for each deck it touched.
+    const perDeck = new Map<number, { correct: number; wrong: number }>();
+    for (const r of results) {
+      const s = perDeck.get(r.card.deckId) ?? { correct: 0, wrong: 0 };
+      if (r.correct) s.correct++;
+      else s.wrong++;
+      perDeck.set(r.card.deckId, s);
+    }
+    const endedAt = Date.now();
+    for (const [id, s] of perDeck) saveSession(db, { deckId: id, startedAt: startedAt.current, endedAt, ...s });
+    recordAnswers(db, results.map((r) => ({ cardId: r.card.id, correct: r.correct })));
+  }, [finished, results, db]);
 
   if (!round) return <Loading />;
 
@@ -83,13 +114,15 @@ export default function SessionScreen() {
   };
 
   if (finished) {
-    return <Recap deckName={deckName} results={results} onRestart={start} />;
+    // "Review missed" replays only those cards; "new session" draws again.
+    const replay = (cards?: Card[]) => (cards ? start(drawCards(cards, new Map(), 0)) : draw().then(start));
+    return <Recap title={title} results={results} onRestart={replay} />;
   }
 
   const card = round[results.length];
   return (
     <Screen scroll={false}>
-      <Stack.Screen options={{ title: deckName }} />
+      <Stack.Screen options={{ title }} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <T variant="label" color={color}>
           {results.length + 1} / {round.length}
@@ -250,13 +283,13 @@ function Controls({
 }
 
 function Recap({
-  deckName,
+  title,
   results,
   onRestart,
 }: {
-  deckName: string;
+  title: string;
   results: Result[];
-  onRestart: (cards: Card[]) => void;
+  onRestart: (cards?: Card[]) => void;
 }) {
   const theme = useTheme();
   const { t } = useI18n();
@@ -266,7 +299,7 @@ function Recap({
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: deckName }} />
+      <Stack.Screen options={{ title }} />
       <Surface tint={pct >= 80 ? theme.success : pct >= 50 ? theme.warning : theme.danger} style={{ alignItems: 'center' }}>
         <T variant="caption">{t('session.complete')}</T>
         <T variant="title" color={pct >= 80 ? theme.success : pct >= 50 ? theme.warning : theme.danger}>
@@ -275,7 +308,7 @@ function Recap({
         <T>{t('session.score', { correct, missed: missed.length })}</T>
       </Surface>
       {missed.length > 0 ? <Button icon={Icons.replay} title={t('session.reviewMissed', { count: missed.length })} onPress={() => onRestart(missed)} /> : null}
-      <Button icon={Icons.study} title={t('session.restart')} variant="secondary" onPress={() => onRestart(results.map((r) => r.card))} />
+      <Button icon={Icons.study} title={t('session.restart')} variant="secondary" onPress={() => onRestart()} />
       <Button icon={Icons.done} title={t('common.done')} variant="secondary" onPress={() => router.back()} />
       {missed.length > 0 ? <T variant="label">{t('session.missedCards')}</T> : null}
       {missed.map((c) => (

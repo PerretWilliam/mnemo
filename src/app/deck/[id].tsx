@@ -6,10 +6,11 @@ import { View } from 'react-native';
 import { Button, confirm, Empty, Input, Loading, Row, Screen, Select, T, useFocusData } from '@/components/ui';
 import { Icons } from '@/constants/icons';
 import { deckColor, Spacing } from '@/constants/theme';
-import { deleteCard, deleteDeck, getDeck, listCards, listFolders, renameDeck, setDeckFolder } from '@/db';
+import { deleteCard, deleteDeck, getDeck, getSessionSize, listCards, listFolders, renameDeck, setDeckFolder } from '@/db';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { stripCloze } from '@/lib/cloze';
+import { sessionLength } from '@/lib/sampling';
 
 /** One-line plain-text preview: list items never render Markdown/KaTeX (no WebView per row). */
 const preview = (s: string) => stripCloze(s).replace(/\s+/g, ' ').trim();
@@ -84,7 +85,7 @@ export default function DeckScreen() {
       <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
         <Button
           icon={Icons.study}
-          title={t('deck.study', { count: cards.length })}
+          title={t('deck.study', { count: sessionLength(cards.length, getSessionSize()) })}
           style={{ flex: 1 }}
           disabled={cards.length === 0}
           onPress={() => router.push({ pathname: '/session/[deckId]', params: { deckId: id } })}

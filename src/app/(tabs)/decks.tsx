@@ -78,17 +78,29 @@ function SectionHeader({ folder, count }: { folder: Folder | null; count: number
   const { t, tp } = useI18n();
   const color = deckColor(folder?.color, theme);
   return (
-    <Pressable
-      accessibilityRole={folder ? 'button' : 'header'}
-      disabled={!folder}
-      onPress={() => folder && router.push({ pathname: '/folder/[id]', params: { id: folder.id } })}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingTop: Spacing.sm }}>
-      <Icon name={Icons.folder} color={color} size={20} />
-      <T variant="heading" color={color} style={{ flex: 1 }} numberOfLines={1}>
-        {folder?.name ?? t('decks.unfiled')}
-      </T>
-      <T variant="caption">{tp('count.decks', count)}</T>
-      {folder ? <Icon name={Icons.edit} color={theme.textSecondary} size={18} /> : null}
-    </Pressable>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingTop: Spacing.sm }}>
+      <Pressable
+        accessibilityRole={folder ? 'button' : 'header'}
+        disabled={!folder}
+        onPress={() => folder && router.push({ pathname: '/folder/[id]', params: { id: folder.id } })}
+        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+        <Icon name={Icons.folder} color={color} size={20} />
+        <T variant="heading" color={color} style={{ flexShrink: 1 }} numberOfLines={1}>
+          {folder?.name ?? t('decks.unfiled')}
+        </T>
+        <T variant="caption">{tp('count.decks', count)}</T>
+        {folder ? <Icon name={Icons.edit} color={theme.textSecondary} size={18} /> : null}
+      </Pressable>
+      {folder && folder.cardCount > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('folder.study')}
+          hitSlop={8}
+          onPress={() => router.push({ pathname: '/session/folder/[folderId]', params: { folderId: folder.id } })}
+          style={{ padding: Spacing.xs }}>
+          <Icon name={Icons.study} color={color} size={24} />
+        </Pressable>
+      ) : null}
+    </View>
   );
 }

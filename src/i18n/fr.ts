@@ -68,6 +68,7 @@ export const fr: Dictionary = {
   'folder.deleteTitle': 'Supprimer le dossier ?',
   'folder.deleteMessage': '« {name} » sera supprimé. Ses paquets sont conservés et sortent du dossier.',
   'folder.missing': "Ce dossier n'existe plus.",
+  'folder.study': 'Réviser ce dossier',
 
   'editor.title': 'Carte',
   'editor.newTitle': 'Nouvelle carte',
@@ -95,7 +96,7 @@ export const fr: Dictionary = {
   'session.complete': 'Session terminée',
   'session.score': '{correct} réussies · {missed} ratées',
   'session.reviewMissed': 'Revoir les ratées ({count})',
-  'session.restart': 'Recommencer tout le paquet',
+  'session.restart': 'Nouvelle session',
   'session.missedCards': 'Cartes ratées',
 
   'history.title': 'Historique',
@@ -104,6 +105,9 @@ export const fr: Dictionary = {
   'settings.title': 'Réglages',
   'settings.language': "Langue de l'app",
   'settings.languageSystem': 'Langue du système',
+  'settings.sessionSize': 'Cartes par session',
+  'settings.sessionAll': 'Toutes les cartes',
+  'settings.sessionSizeHelp': 'Les cartes sont tirées au hasard. Les cartes ratées ou jamais révisées reviennent plus souvent que celles que tu maîtrises.',
   'settings.import': 'Importer',
   'settings.importHelp':
     "Format JSON : voir le générateur IA pour la structure exacte. Les erreurs sont listées carte par carte.",

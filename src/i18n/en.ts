@@ -68,6 +68,7 @@ export const en = {
   'folder.deleteTitle': 'Delete folder?',
   'folder.deleteMessage': '"{name}" will be deleted. Its decks are kept and move out of the folder.',
   'folder.missing': 'This folder no longer exists.',
+  'folder.study': 'Study this folder',
 
   'editor.title': 'Card',
   'editor.newTitle': 'New card',
@@ -95,7 +96,7 @@ export const en = {
   'session.complete': 'Session complete',
   'session.score': '{correct} correct · {missed} missed',
   'session.reviewMissed': 'Review missed ({count})',
-  'session.restart': 'Restart whole deck',
+  'session.restart': 'New session',
   'session.missedCards': 'Missed cards',
 
   'history.title': 'History',
@@ -104,6 +105,9 @@ export const en = {
   'settings.title': 'Settings',
   'settings.language': 'App language',
   'settings.languageSystem': 'System default',
+  'settings.sessionSize': 'Cards per session',
+  'settings.sessionAll': 'All cards',
+  'settings.sessionSizeHelp': 'Cards are drawn at random. Missed and never-studied cards come up more often than ones you know.',
   'settings.import': 'Import',
   'settings.importHelp': 'JSON format: see the AI generator for the exact structure. Errors are listed per card.',
   'settings.importFile': 'Import a JSON file',
