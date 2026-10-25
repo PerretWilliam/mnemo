@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/PerretWilliam/mnemo/compare/v0.3.2...v0.4.0) (2026-10-25)
+
+
+### Features
+
+* group decks into colored folders ([#14](https://github.com/PerretWilliam/mnemo/issues/14)) ([cded520](https://github.com/PerretWilliam/mnemo/commit/cded520cc43eabd6a7ee3f71216c7ef81bfe4ab1))
+
 ## [0.3.2](https://github.com/PerretWilliam/flashcard/compare/v0.3.1...v0.3.2) (2026-10-24)
 
 
