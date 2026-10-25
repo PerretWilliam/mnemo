@@ -3,6 +3,8 @@ export type CardTypes = 'qa' | 'cloze' | 'both';
 export type PromptOptions = {
   topic: string;
   deckName: string;
+  /** Optional folder the deck is filed in on import. */
+  folder?: string;
   count: number;
   types: CardTypes;
   language: string;
@@ -21,7 +23,16 @@ export function buildPrompt(o: PromptOptions): string {
     'You generate flashcards for an app. Reply ONLY with one valid ```json block, with no text before or after.',
     '',
     'Exact format:',
-    JSON.stringify({ version: 1, decks: [{ name: o.deckName, cards: [{ front: '...', back: '...', tags: ['...'] }] }] }),
+    JSON.stringify({
+      version: 1,
+      decks: [
+        {
+          name: o.deckName,
+          ...(o.folder?.trim() ? { folder: o.folder.trim() } : {}),
+          cards: [{ front: '...', back: '...', tags: ['...'] }],
+        },
+      ],
+    }),
     '',
     'Rules:',
     `- ${o.count} cards about: ${o.topic}. Language of the cards: ${o.language}.`,

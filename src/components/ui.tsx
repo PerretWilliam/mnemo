@@ -126,7 +126,7 @@ export function Input(props: TextInputProps & { label?: string }) {
   );
 }
 
-/** Pressable list row. `accent` draws a colored bar on the left (e.g. the deck color). */
+/** Pressable list row. `accent` tints the `right` badge (e.g. the deck's folder color). */
 export function Row({
   title,
   subtitle,
@@ -151,7 +151,6 @@ export function Row({
         styles.row,
         { backgroundColor: pressed ? theme.muted : theme.surface, borderColor: theme.border },
       ]}>
-      {accent ? <View style={[styles.rowAccent, { backgroundColor: accent }]} /> : null}
       <View style={{ flex: 1, gap: 2 }}>
         <T numberOfLines={2}>{title}</T>
         {subtitle ? (
@@ -354,9 +353,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
   },
-  rowAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 5 },
   badge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.sm },
   segmented: { flexDirection: 'row', borderRadius: Radius.sm, padding: 3 },
   segment: { flex: 1, alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radius.sm - 2 },

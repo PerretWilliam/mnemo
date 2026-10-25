@@ -3,10 +3,11 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, confirm, Empty, Input, Loading, Row, Screen, T, useFocusData } from '@/components/ui';
+import { Button, confirm, Empty, Input, Loading, Row, Screen, Select, T, useFocusData } from '@/components/ui';
 import { Icons } from '@/constants/icons';
 import { deckColor, Spacing } from '@/constants/theme';
-import { deleteCard, deleteDeck, getDeck, listCards, renameDeck } from '@/db';
+import { deleteCard, deleteDeck, getDeck, listCards, listFolders, renameDeck, setDeckFolder } from '@/db';
+import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/i18n';
 import { stripCloze } from '@/lib/cloze';
 
@@ -15,17 +16,21 @@ const preview = (s: string) => stripCloze(s).replace(/\s+/g, ' ').trim();
 
 export default function DeckScreen() {
   const db = useSQLiteContext();
+  const theme = useTheme();
   const { t } = useI18n();
   const id = Number(useLocalSearchParams<{ id: string }>().id);
   const [data, reload] = useFocusData(
-    useCallback(async () => ({ deck: await getDeck(db, id), cards: await listCards(db, id) }), [db, id]),
+    useCallback(
+      async () => ({ deck: await getDeck(db, id), cards: await listCards(db, id), folders: await listFolders(db) }),
+      [db, id],
+    ),
   );
   const [query, setQuery] = useState('');
   const [name, setName] = useState<string | null>(null);
 
   if (!data) return <Loading />;
   if (!data.deck) return <Empty text={t('deck.missing')} />;
-  const { deck, cards } = data;
+  const { deck, cards, folders } = data;
 
   const q = query.trim().toLowerCase();
   const shown = q
@@ -38,6 +43,11 @@ export default function DeckScreen() {
       reload();
     }
     setName(null);
+  };
+
+  const changeFolder = async (value: string) => {
+    await setDeckFolder(db, id, value === '' ? null : Number(value));
+    reload();
   };
 
   const removeDeck = async () => {
@@ -58,8 +68,19 @@ export default function DeckScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: deck.name, headerTintColor: deckColor(id) }} />
+      <Stack.Screen options={{ title: deck.name, headerTintColor: deckColor(deck.folderColor, theme) }} />
       <Input label={t('deck.name')} value={name ?? deck.name} onChangeText={setName} onBlur={saveName} onSubmitEditing={saveName} />
+      {folders.length > 0 ? (
+        <Select
+          label={t('deck.folder')}
+          value={deck.folderId === null ? '' : String(deck.folderId)}
+          options={[
+            { value: '', label: t('deck.noFolder') },
+            ...folders.map((f) => ({ value: String(f.id), label: f.name })),
+          ]}
+          onChange={changeFolder}
+        />
+      ) : null}
       <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
         <Button
           icon={Icons.study}
@@ -86,7 +107,6 @@ export default function DeckScreen() {
           key={c.id}
           title={preview(c.front)}
           subtitle={[preview(c.back), c.tags.map((tag) => `#${tag}`).join(' ')].filter(Boolean).join('  ·  ')}
-          accent={deckColor(id)}
           onPress={() => router.push({ pathname: '/card/[id]', params: { id: c.id, deckId: id } })}
           onLongPress={() => removeCard(c.id)}
         />

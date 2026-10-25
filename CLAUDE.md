@@ -44,7 +44,8 @@ Run `npm run check` before declaring any task done.
 ```
 src/app/                 Expo Router routes ONLY (every file is a screen)
   (tabs)/                index (dashboard), decks, history, settings
-  deck/[id].tsx          cards of a deck: search, edit, delete
+  deck/[id].tsx          cards of a deck: search, edit, delete, choose its folder
+  folder/[id].tsx        create/edit a folder: name + color (id = "new" to create)
   card/[id].tsx          editor + live preview (id = "new" to create; needs ?deckId=)
   session/[deckId].tsx   swipe study session + recap
   ai-prompt.tsx          AI prompt generator + clipboard import
@@ -74,7 +75,8 @@ docs/FORMAT.md           JSON exchange format spec
   editor preview use `<MathMarkdown>` (one WebView each). Don't add a WebView per list item.
 - **Data refresh**: screens load with `useFocusData(useCallback(...))` so they refresh on focus.
 - **Theme**: colors from `useTheme()` only (light + dark). Decks get a stable color with
-  `deckColor(id)`; tinted backgrounds via `withAlpha()` or `<Surface tint>`.
+  `deckColor(deck.folderColor, theme)` (a deck takes its folder's color, unfiled = primary);
+  tinted backgrounds via `withAlpha()` or `<Surface tint>`. List rows have no colored side bar.
 - **Icons**: `<Icon name={Icons.x} />` / `<Button icon={Icons.x}>` with the catalog in
   `src/constants/icons.ts` (Material Symbols on Android, SF Symbols on iOS, bundled offline).
   Never use emojis or text characters (✓ ✗ ▾…) as icons.

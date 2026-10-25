@@ -5,9 +5,13 @@ One format for import, export and AI generation. Implemented in `src/lib/format.
 ```json
 {
   "version": 1,
+  "folders": [
+    { "name": "MA101", "color": "#6366F1" }
+  ],
   "decks": [
     {
       "name": "Calculus — Chapter 2",
+      "folder": "MA101",
       "cards": [
         { "front": "Derivative of $\\ln x$?", "back": "$\\dfrac{1}{x}$ for $x>0$", "tags": ["derivatives"] },
         { "front": "A primitive of $\\cos$ is {{c::$\\sin$}}.", "back": "", "tags": [] }
@@ -25,6 +29,8 @@ One format for import, export and AI generation. Implemented in `src/lib/format.
 | `version` | number | Must be `1`. |
 | `decks` | array | At least one deck. |
 | `decks[].name` | string | Non-empty. Used to detect conflicts with existing decks (case-insensitive). |
+| `decks[].folder` | string | Optional. Name of the folder the deck goes in (case-insensitive match, created if missing). Absent = no folder. |
+| `folders` | array | Optional. Exported by the app. Entries are `{ "name": non-empty string, "color": "#RRGGBB" }`; a folder that already exists keeps its own color. Folders only listed here (no deck) are created empty. |
 | `decks[].cards[].front` | string | Non-empty. Markdown + KaTeX. May contain cloze markers. |
 | `decks[].cards[].back` | string | Required for question/answer cards. Optional for cloze cards (extra explanation). |
 | `decks[].cards[].tags` | string[] | Optional, defaults to `[]`. |
@@ -33,6 +39,9 @@ One format for import, export and AI generation. Implemented in `src/lib/format.
 - **No ids** in the file: the app creates them on import (no collisions, simpler for AIs).
 - **Name conflicts**: for each imported deck whose name exists, the app asks: merge, create a new
   deck, or skip.
+- **Folders**: a deck's color comes from its folder. A folder named in `decks[].folder` but missing
+  from `folders` gets the least used palette color. Merging into an existing deck keeps that deck's
+  folder. Files without these fields (older exports) import unchanged, as unfiled decks.
 - **Math**: `$...$` inline, `$$...$$` block (KaTeX). In JSON every backslash must be doubled:
   `"\\frac{1}{2}"`.
 - **Cloze**: `{{c::hidden text}}` in `front`. Braces inside are fine: `{{c::$\\frac{1}{x^{2}}$}}`.

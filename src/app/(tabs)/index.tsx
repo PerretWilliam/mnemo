@@ -104,7 +104,7 @@ export default function Dashboard() {
         <Row
           key={d.id}
           title={d.name}
-          accent={deckColor(d.id)}
+          accent={deckColor(d.folderColor, theme)}
           subtitle={
             lastByDeck.has(d.id)
               ? t('dash.lastStudied', { date: new Date(lastByDeck.get(d.id)!).toLocaleDateString(lang) })

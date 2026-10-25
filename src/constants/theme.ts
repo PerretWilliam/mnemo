@@ -41,9 +41,8 @@ export const Colors = {
 
 export type Theme = { [K in keyof typeof Colors.light]: string };
 
-/** Each deck gets a stable color from this palette (readable on light and dark backgrounds). */
-const DECK_COLORS = ['#6366F1', '#EC4899', '#F59E0B', '#10B981', '#06B6D4', '#8B5CF6', '#EF4444', '#84CC16'];
-export const deckColor = (deckId: number) => DECK_COLORS[Math.abs(deckId) % DECK_COLORS.length];
+/** A deck takes its folder's color; unfiled decks use the app's primary color. */
+export const deckColor = (folderColor: string | null | undefined, theme: Theme) => folderColor ?? theme.primary;
 
 /** `#RRGGBB` + alpha (0-1) -> `#RRGGBBAA`, for tinted backgrounds. */
 export const withAlpha = (hex: string, alpha: number) =>
