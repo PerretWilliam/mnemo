@@ -4,7 +4,7 @@
 
 ## How it was tested
 
-- [ ] `./gradlew testDebugUnitTest lintDebug assembleRelease` passes
+- [ ] `./gradlew testDebugUnitTest lintDebug` passes
 - [ ] Tried on a device or emulator (for UI changes)
 
 ## Checklist

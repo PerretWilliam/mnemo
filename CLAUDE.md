@@ -30,14 +30,14 @@ Gradle (Kotlin DSL, AGP built-in Kotlin). minSdk 26.
 ## Commands
 
 ```bash
-./gradlew testDebugUnitTest lintDebug assembleRelease   # what CI runs
+./gradlew testDebugUnitTest lintDebug                    # what CI runs (the APK is built on release only)
 ./gradlew installDebug                                   # debug build on a USB device/emulator
 ./gradlew installRelease                                 # optimized build on a USB device
 ./gradlew assembleRelease                                # APK -> app/build/outputs/apk/release/app-release.apk
 node scripts/build-icons.mjs                             # regenerate launcher/splash PNGs from the logo (needs rsvg-convert)
 ```
 
-Run `./gradlew testDebugUnitTest lintDebug assembleRelease` before declaring any task done.
+Run `./gradlew testDebugUnitTest lintDebug` before declaring any task done.
 There is no emulator in CI: UI changes need a manual run on a device.
 
 ## Layout

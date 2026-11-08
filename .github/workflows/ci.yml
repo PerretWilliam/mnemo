@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   check:
-    name: Lint, test, build
+    name: Lint, typecheck, test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -23,8 +23,8 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
-      # Same as `./gradlew check`, plus a release build so R8 / resource shrinking problems show up in the PR.
-      - run: ./gradlew testDebugUnitTest lintDebug assembleRelease
+      # Compiles, runs the unit tests and lint. The APK is built on release only (see release.yml).
+      - run: ./gradlew testDebugUnitTest lintDebug
 
   pr-title:
     name: Conventional PR title
@@ -37,4 +37,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# The Android APK is slow to build: it only runs on release (see release.yml).

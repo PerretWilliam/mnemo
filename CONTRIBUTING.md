@@ -15,7 +15,7 @@ cd mnemo
 
 1. Branch from `main`: `feat/short-name`, `fix/short-name`, `docs/...`, `chore/...`.
 2. Keep changes focused. Add or update tests in `app/src/test/` for any pure logic.
-3. Run `./gradlew testDebugUnitTest lintDebug assembleRelease`. CI runs the same.
+3. Run `./gradlew testDebugUnitTest lintDebug`. CI runs the same; the APK is only built on release.
 4. Open a pull request. **The PR title must follow [Conventional Commits](https://www.conventionalcommits.org/)**,
    because PRs are squash-merged and the title becomes the commit on `main`:
    - `feat: add tag filter to deck screen` → minor version bump
