@@ -4,85 +4,81 @@ Guidance for AI agents and humans working on this repository.
 
 ## Project
 
-**Mnemo**: an offline-first mobile flashcard app (Android first, iOS-ready).
+**Mnemo**: an offline-first, native Android flashcard app.
 Markdown + KaTeX math, cloze cards (`{{c::...}}`), swipe study sessions, JSON import/export,
 and a prompt generator that lets ChatGPT/Claude produce decks in the app's JSON format.
 
-Stack: Expo SDK 58 · Expo Router · TypeScript (strict) · expo-sqlite (no ORM) ·
-react-native-webview + marked + KaTeX (inlined, offline) · gesture-handler v3 + reanimated 4.
+Stack: Kotlin · Jetpack Compose (Material 3) · navigation-compose · raw `SQLiteOpenHelper` (no ORM) ·
+WebView + marked + KaTeX (bundled in `assets/render`, offline) · kotlinx-serialization-json (parser only) ·
+Gradle (Kotlin DSL, AGP built-in Kotlin). minSdk 26.
 
 ## Language rules — everything in English
 
-- **App UI text**: never hard-coded in screens. Every string is a key in `src/i18n/en.ts`
-  (English is the source), translated in `fr.ts`, `es.ts`, `de.ts`. TypeScript fails if a
-  language misses a key. Read them with `const { t, tp } = useI18n()`; plurals use
-  `<key>_one` / `<key>_other` + `tp(key, count)`. Adding a language = one dictionary + one
-  line in `LANGUAGES` (`src/i18n/index.tsx`).
-- Pure code in `src/lib/` returns codes, not sentences (e.g. import `Issue` codes), so the UI
-  can translate them. Card *content* is user data, not UI.
+- **App UI text**: never hard-coded in screens. Every string is a resource in
+  `app/src/main/res/values/strings.xml` (English is the source), translated in `values-fr`,
+  `values-es`, `values-de`. Read them with `val tr = LocalTr.current`: `tr(R.string.x, "name" to value)`;
+  placeholders are `{name}` (not `%s`); plurals are `<plurals>` read with `tr.plural(R.plurals.x, count)`
+  (`{count}` is filled automatically). Adding a language = one `values-xx/strings.xml`, one entry in
+  `res/xml/locales_config.xml`, `androidResources.localeFilters` in `app/build.gradle.kts` and the language
+  list in Settings. Lint fails on missing translations.
+- Pure code in `lib/` returns codes, not sentences (e.g. import `IssueCode`), so the UI can
+  translate them (`Transfer.kt` maps codes to strings). Card *content* is user data, not UI.
 - **Code**: identifiers, file names, types, routes: English.
-- **Comments and JSDoc**: English. Explain *why*, not *what*. Keep them short.
+- **Comments and KDoc**: English. Explain *why*, not *what*. Keep them short.
 - **Commits, PR titles/descriptions, issues, docs, changelog**: English.
 
 ## Commands
 
 ```bash
-npm install              # also runs postinstall: builds src/render/assets.generated.ts
-npm start                # dev server (needs a dev build: native modules aren't all in Expo Go)
-npm run android          # debug build + install on USB device/emulator
-npm run android:release  # release build + install on USB device
-npm run build:apk        # standalone release APK -> android/app/build/outputs/apk/release/
-npm run check            # lint + typecheck + tests (what CI runs)
-npx expo install <pkg>   # ALWAYS use this to add deps (SDK-compatible versions)
-npx expo-doctor          # dependency/config sanity check
+./gradlew testDebugUnitTest lintDebug assembleRelease   # what CI runs
+./gradlew installDebug                                   # debug build on a USB device/emulator
+./gradlew installRelease                                 # optimized build on a USB device
+./gradlew assembleRelease                                # APK -> app/build/outputs/apk/release/app-release.apk
+node scripts/build-icons.mjs                             # regenerate launcher/splash PNGs from the logo (needs rsvg-convert)
 ```
 
-Run `npm run check` before declaring any task done.
+Run `./gradlew testDebugUnitTest lintDebug assembleRelease` before declaring any task done.
+There is no emulator in CI: UI changes need a manual run on a device.
 
 ## Layout
 
 ```
-src/app/                 Expo Router routes ONLY (every file is a screen)
-  (tabs)/                index (dashboard), decks, history, settings
-  deck/[id].tsx          cards of a deck: search, edit, delete, choose its folder
-  folder/[id].tsx        create/edit a folder: name + color (id = "new" to create)
-  card/[id].tsx          editor + live preview (id = "new" to create; needs ?deckId=)
-  session/[deckId].tsx   swipe study session + recap (session/folder/[folderId] re-exports it)
-  ai-prompt.tsx          AI prompt generator + clipboard import
-src/components/          ui.tsx (themed primitives, Select dropdown), math-markdown.tsx (WebView renderer)
-src/i18n/                dictionaries (en source, fr, es, de) + I18nProvider / useI18n
-src/lib/                 PURE TypeScript, no React/Expo imports, unit-tested with node:test
-src/db.ts                SQLite schema, migrations (PRAGMA user_version) and queries
-src/transfer.ts          import/export flows (file picker, clipboard, share sheet)
-scripts/                 build-webview-assets.mjs (postinstall), build-icons.mjs (logo -> icon/splash PNGs)
+app/src/main/java/com/perretwilliam/flashcards/
+  MainActivity.kt        single activity (AppCompatActivity, for per-app languages)
+  Translator.kt          string/plural lookup with {name} placeholders (LocalTr)
+  Transfer.kt            import/export flows (clipboard, file, share sheet), IssueCode -> string
+  data/Db.kt             SQLite schema, migrations, queries, import/export; data/Prefs.kt: session size
+  lib/                   PURE Kotlin, no Android imports, unit-tested (app/src/test)
+  ui/                    Theme, Components (themed primitives, Select, DetailScreen), Dialogs, MathMarkdown, App (nav + tabs)
+  ui/screens/            Tabs.kt (home, decks, history, settings), Deck.kt (deck, folder, card editor), Session.kt, AiPrompt.kt
+app/src/main/assets/render/   marked + KaTeX + render.js (offline)
+scripts/build-icons.mjs  logo -> launcher/splash PNGs in res/drawable-nodpi
 docs/FORMAT.md           JSON exchange format spec
+version.txt              single source of truth for the version (bumped by release-please)
 ```
 
 ## Conventions
 
-- **Expo changes fast**: do not trust memory for Expo/RN APIs. Check the installed package's
-  `.d.ts` or https://docs.expo.dev/versions/v58.0.0/ before using an API.
-- `android/` and `ios/` are generated (`expo prebuild`) and git-ignored. Never edit them;
-  configure native behaviour in `app.config.ts` or config plugins.
-- **Version**: `package.json` is the single source of truth. `app.config.ts` derives
-  `version` and Android `versionCode` from it. Never bump versions by hand: release-please does.
-- **Pure logic goes in `src/lib/`** with tests in `src/lib/*.test.ts`. Imports between lib files
-  use explicit `.ts` extensions (Node runs them natively). Keep lib free of React/Expo imports.
+- **Version**: `version.txt` is the single source of truth. `app/build.gradle.kts` derives `versionName`
+  and `versionCode` (`major*10000 + minor*100 + patch`) from it. Never bump versions by hand: release-please does.
+- **Pure logic goes in `lib/`** with tests in `app/src/test/.../LibTest.kt`. Keep it free of Android imports.
 - **Database**: raw SQL with bound parameters (`?`), never string-interpolated user input.
-  Schema changes: bump `SCHEMA_VERSION` in `src/db.ts` and add a migration step; never edit
-  an existing step.
-- **Rendering**: list rows show plain text (`stripCloze`); only displayed card faces and the
-  editor preview use `<MathMarkdown>` (one WebView each). Don't add a WebView per list item.
-- **Data refresh**: screens load with `useFocusData(useCallback(...))` so they refresh on focus.
-- **Theme**: colors from `useTheme()` only (light + dark). Decks get a stable color with
-  `deckColor(deck.folderColor, theme)` (a deck takes its folder's color, unfiled = primary);
-  tinted backgrounds via `withAlpha()` or `<Surface tint>`. List rows have no colored side bar.
-- **Icons**: `<Icon name={Icons.x} />` / `<Button icon={Icons.x}>` with the catalog in
-  `src/constants/icons.ts` (Material Symbols on Android, SF Symbols on iOS, bundled offline).
-  Never use emojis or text characters (✓ ✗ ▾…) as icons.
-- **Branding**: the logo is code in `scripts/build-icons.mjs`; edit it and run
-  `node scripts/build-icons.mjs` to regenerate `assets/images/*`. Never edit the PNGs by hand.
-- Keep dependencies minimal. Prefer Expo modules; justify any new library in the PR.
+  Schema changes: bump `SCHEMA_VERSION` in `Db.kt` and add a migration step; never edit an existing step.
+  The database file and application id are the same as the former Expo app, so updates keep user data.
+  All `Db` functions block: call them through `io { }` or `rememberQuery { }`.
+- **Rendering**: list rows show plain text (`stripCloze`); only displayed card faces and the editor
+  preview use `MathMarkdown` (one WebView each). Don't add a WebView per list item. The WebView only
+  loads bundled assets through `WebViewAssetLoader` with a CSP; card content must never be able to run script.
+- **Data refresh**: screens load with `rememberQuery(keys) { ... }`; it re-runs after every `Db` write.
+- **Theme**: colors from `LocalTheme.current` only (light + dark). Decks get a stable color with
+  `theme.deckColor(deck.folderColor)` (a deck takes its folder's color, unfiled = primary);
+  tinted backgrounds via `Color.alpha()` or `Surface(tint = ...)`. List rows have no colored side bar.
+- **Icons**: `Ic.x` from `ui/Icons.kt` (Material icons, bundled). Never use emojis or text characters as icons.
+- **Dialogs**: `ask`/`alert`/`confirm` in `ui/Dialogs.kt` are suspend functions (rendered by `DialogHost`).
+  Run user actions with `scope.launchSafe(tr) { ... }` so failures are shown instead of crashing.
+- **Branding**: the logo is code in `scripts/build-icons.mjs`; edit it and run the script to regenerate the PNGs
+  in `res/drawable-nodpi`. Never edit those PNGs by hand.
+- Keep dependencies minimal. Prefer AndroidX/Jetpack; justify any new library in the PR.
 - No speculative abstractions. Small, readable files over clever ones.
 
 ## Domain rules
@@ -93,7 +89,7 @@ docs/FORMAT.md           JSON exchange format spec
   (`\int`) and silently-valid ones (`\frac` -> form feed). Keep tests for this green.
 - Session: **swipe left = correct, swipe right = missed**. Buttons mirror that order.
 - A session is a random sample of N cards (Settings, 0 = all) from a deck or a whole folder.
-  `drawCards` (`src/lib/sampling.ts`) weights cards by their `card_stats` row: missed and
+  `drawCards` (`lib/Sampling.kt`) weights cards by their `card_stats` row: missed and
   never-seen cards are drawn more often than mastered ones. Stats are written when a session ends.
 - Out of scope for now: spaced repetition, multi-device sync, images.
 

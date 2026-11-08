@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws everything; the theme only paints the window until the first frame. -->
+    <style name="Theme.Mnemo" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/brand</item>
+    </style>
+</resources>

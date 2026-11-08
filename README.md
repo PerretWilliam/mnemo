@@ -1,8 +1,8 @@
 # Mnemo
 
-[![CI](https://github.com/PerretWilliam/flashcard/actions/workflows/ci.yml/badge.svg)](https://github.com/PerretWilliam/flashcard/actions/workflows/ci.yml)
+[![CI](https://github.com/PerretWilliam/mnemo/actions/workflows/ci.yml/badge.svg)](https://github.com/PerretWilliam/mnemo/actions/workflows/ci.yml)
 
-**Mnemo** is an offline flashcard app for Android (iOS-ready) built with Expo and React Native.
+**Mnemo** is an offline flashcard app, native Android (Kotlin + Jetpack Compose).
 Write cards in **Markdown with LaTeX math**, make **cloze** (fill-in-the-blank) cards, study them
 with **swipe gestures**, and let ChatGPT or Claude **generate whole decks** for you.
 
@@ -27,11 +27,11 @@ All data stays on the device (SQLite). No account, no network.
 
 ## Getting started
 
-Requirements: Node ≥ 22.18, JDK 17, Android SDK (`ANDROID_HOME` set), `adb`.
+Requirements: JDK 17+, Android SDK (`ANDROID_HOME` set or `local.properties` with `sdk.dir`), `adb`.
+Android Studio works too: open the folder and run the `app` configuration.
 
 ```bash
-npm install
-npm run check   # lint + typecheck + tests
+./gradlew testDebugUnitTest lintDebug   # tests + lint (what CI runs, plus a release build)
 ```
 
 ### Run on your Android phone over USB
@@ -41,21 +41,20 @@ npm run check   # lint + typecheck + tests
    ```bash
    adb devices
    ```
-3. Build and install a release build (no dev server needed afterwards):
+3. Build and install:
    ```bash
-   npm run android:release
+   ./gradlew installRelease   # optimized build
+   ./gradlew installDebug     # debug build
    ```
-
-For development with hot reload use `npm run android` (debug build) and keep `npm start` running.
 
 ### Build a standalone APK
 
 ```bash
-npm run build:apk
-adb install -r android/app/build/outputs/apk/release/app-release.apk
+./gradlew assembleRelease
+adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-Every GitHub release also has the APK attached.
+Every GitHub release also has the APK attached. Requires Android 8.0 (API 26) or newer.
 
 > The release APK is signed with the default debug key, fine for personal sideloading.
 > Publishing to the Play Store needs your own upload keystore.
