@@ -18,13 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-java@v6
         with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run check
-      - run: npx expo-doctor
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      # Compiles, runs the unit tests and lint. The APK is built on release only (see release.yml).
+      - run: ./gradlew testDebugUnitTest lintDebug
 
   pr-title:
     name: Conventional PR title
@@ -37,4 +37,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# The Android APK is slow to build: it only runs on release (see release.yml).

@@ -1,6 +1,6 @@
 # JSON exchange format (v1)
 
-One format for import, export and AI generation. Implemented in `src/lib/format.ts`.
+One format for import, export and AI generation. Implemented in `app/src/main/java/com/perretwilliam/flashcards/lib/Format.kt`.
 
 ```json
 {

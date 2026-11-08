@@ -6,19 +6,16 @@ Thanks for helping! Read [CLAUDE.md](CLAUDE.md) first: it holds the project conv
 ## Setup
 
 ```bash
-git clone https://github.com/PerretWilliam/flashcard.git
-cd flashcard
-npm install
-npm run android   # debug build on a USB device or emulator
+git clone https://github.com/PerretWilliam/mnemo.git
+cd mnemo
+./gradlew installDebug   # debug build on a USB device or emulator (or run it from Android Studio)
 ```
 
 ## Workflow
 
 1. Branch from `main`: `feat/short-name`, `fix/short-name`, `docs/...`, `chore/...`.
-2. Keep changes focused. Add or update tests in `src/lib/*.test.ts` for any pure logic.
-3. Run `npm run check` (lint + typecheck + tests). CI runs the same. CI does **not** build the APK
-   on pull requests (too slow; it is built on release), so if you touch native config
-   (`app.config.ts`, plugins, native deps), run `npm run build:apk` locally.
+2. Keep changes focused. Add or update tests in `app/src/test/` for any pure logic.
+3. Run `./gradlew testDebugUnitTest lintDebug`. CI runs the same; the APK is only built on release.
 4. Open a pull request. **The PR title must follow [Conventional Commits](https://www.conventionalcommits.org/)**,
    because PRs are squash-merged and the title becomes the commit on `main`:
    - `feat: add tag filter to deck screen` → minor version bump
@@ -31,10 +28,10 @@ npm run android   # debug build on a USB device or emulator
 
 Fully automated with [release-please](https://github.com/googleapis/release-please):
 
-- Every merge to `main` updates a **release PR** that bumps `package.json` and writes `CHANGELOG.md`.
+- Every merge to `main` updates a **release PR** that bumps `version.txt` and writes `CHANGELOG.md`.
 - Merging the release PR creates the `vX.Y.Z` tag and GitHub release; a workflow then builds the
   Android APK and attaches it to the release.
-- The app version and Android `versionCode` are derived from `package.json` in `app.config.ts`.
+- The app version and Android `versionCode` are derived from `version.txt` in `app/build.gradle.kts`.
 
 ## Reporting bugs
 

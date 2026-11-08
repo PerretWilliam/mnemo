@@ -1,5 +1,3 @@
-# npm deps are not managed here: Expo pins SDK-compatible versions.
-# Upgrade them with `npx expo install --fix` (or an SDK upgrade) instead.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -12,3 +10,13 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: ci
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      # AndroidX / Compose / Kotlin move together: one pull request per month.
+      gradle:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore

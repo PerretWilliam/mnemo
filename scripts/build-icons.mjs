@@ -1,13 +1,13 @@
 // Generates every app icon / splash PNG from the SVG logo below.
 // Run manually after changing the logo: `node scripts/build-icons.mjs` (needs `rsvg-convert`,
-// e.g. `brew install librsvg`). Outputs are committed in assets/images/.
+// e.g. `brew install librsvg`). Outputs are committed in app/src/main/res/drawable-nodpi/.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'images');
+const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'app', 'src', 'main', 'res', 'drawable-nodpi');
 const tmp = mkdtempSync(join(tmpdir(), 'icons-'));
 
 const BRAND_FROM = '#4F46E5';
@@ -38,19 +38,17 @@ const svg = (body, bg = '') =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">${defs}${bg}${body}</svg>`;
 
 const files = {
-  // Legacy / store icon: full-bleed gradient square.
-  'icon.png': svg(cards({ scale: 0.92 }), '<rect width="1024" height="1024" fill="url(#bg)"/>'),
   // Android adaptive icon: the launcher crops to the inner ~66%, so the logo is scaled down.
-  'android-icon-background.png': svg('', '<rect width="1024" height="1024" fill="url(#bg)"/>'),
-  'android-icon-foreground.png': svg(cards({ scale: 0.72 })),
-  'android-icon-monochrome.png': svg(cards({ scale: 0.72, mono: true })),
-  // Splash: logo drawn on the solid brand background set in app.config.ts.
-  'splash-icon.png': svg(cards({ scale: 1 })),
+  'ic_launcher_background.png': svg('', '<rect width="1024" height="1024" fill="url(#bg)"/>'),
+  'ic_launcher_foreground.png': svg(cards({ scale: 0.72 })),
+  'ic_launcher_monochrome.png': svg(cards({ scale: 0.72, mono: true })),
+  // Splash: logo drawn on the solid brand background set in res/values/colors.xml.
+  'splash_icon.png': svg(cards({ scale: 1 })),
 };
 
 for (const [name, content] of Object.entries(files)) {
   const src = join(tmp, name.replace('.png', '.svg'));
   writeFileSync(src, content);
   execFileSync('rsvg-convert', ['-w', '1024', '-h', '1024', '-o', join(out, name), src]);
-  console.log(`assets/images/${name}`);
+  console.log(`app/src/main/res/drawable-nodpi/${name}`);
 }
