@@ -46,7 +46,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.activity:activity-compose:1.13.0")
-    implementation("androidx.appcompat:appcompat:1.7.1") // per-app language (AppCompatDelegate)
+    implementation("androidx.appcompat:appcompat:1.8.0") // per-app language (AppCompatDelegate)
     implementation("androidx.navigation:navigation-compose:2.10.2")
     implementation("androidx.webkit:webkit:1.14.0") // WebViewAssetLoader: offline KaTeX assets
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
