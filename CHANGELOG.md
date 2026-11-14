@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/PerretWilliam/mnemo/compare/v0.6.0...v0.7.0) (2026-11-14)
+
+
+### Features
+
+* per-deck play button, folders on home, sober logo, no wrapped buttons ([#23](https://github.com/PerretWilliam/mnemo/issues/23)) ([00f18ea](https://github.com/PerretWilliam/mnemo/commit/00f18ea2f981f4db0d546332e866050f7898edb3))
+
 ## [0.6.0](https://github.com/PerretWilliam/mnemo/compare/v0.5.0...v0.6.0) (2026-11-08)
 
 
