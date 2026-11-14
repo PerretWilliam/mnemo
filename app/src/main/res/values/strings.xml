@@ -32,7 +32,7 @@
     <string name="dash_getStarted">Get started</string>
     <string name="dash_getStartedText">Create a deck, import a JSON file, or let an AI generate one for you.</string>
     <string name="dash_createDeck">Create a deck</string>
-    <string name="dash_studyNext">Study next</string>
+    <string name="dash_folders">Folders</string>
     <string name="dash_lastStudied">Last studied {date}</string>
     <string name="dash_neverStudied">Never studied</string>
     <string name="dash_tapHint">Tap a bar to see that day</string>

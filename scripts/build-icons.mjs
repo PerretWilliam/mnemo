@@ -10,27 +10,21 @@ import { fileURLToPath } from 'node:url';
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'app', 'src', 'main', 'res', 'drawable-nodpi');
 const tmp = mkdtempSync(join(tmpdir(), 'icons-'));
 
-const BRAND_FROM = '#4F46E5';
-const BRAND_TO = '#9333EA';
-const SPARK = '#F59E0B';
+const BRAND = '#1F2937'; // keep in sync with res/values/colors.xml
 
-const defs = `<defs>
-  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="${BRAND_FROM}"/><stop offset="1" stop-color="${BRAND_TO}"/>
-  </linearGradient>
-</defs>`;
+const defs = '';
 
-// Two stacked cards with an "M" stroke, drawn around (512, 512). `scale` shrinks it for safe zones.
+// One white card with an "M", slightly tilted, behind it a faint second card. Drawn around (512, 512).
+// `scale` shrinks it for safe zones.
 function cards({ scale = 1, mono = false } = {}) {
-  const back = mono ? 'fill="none" stroke="#fff" stroke-width="28"' : 'fill="#fff" fill-opacity="0.32"';
+  const back = mono ? 'fill="none" stroke="#fff" stroke-width="28"' : 'fill="#fff" fill-opacity="0.22"';
   const front = mono ? 'fill="none" stroke="#fff" stroke-width="28"' : 'fill="#fff"';
-  const m = mono ? '#fff' : 'url(#bg)';
+  const m = mono ? '#fff' : BRAND;
   return `<g transform="translate(512 512) scale(${scale}) translate(-512 -512)">
-    <rect x="292" y="232" width="400" height="540" rx="56" ${back} transform="rotate(-14 492 502)"/>
-    <rect x="332" y="252" width="400" height="540" rx="56" ${front} transform="rotate(7 532 522)"/>
-    <path d="M422 642 V442 L532 562 L642 442 V642" fill="none" stroke="${m}" stroke-width="58"
-      stroke-linecap="round" stroke-linejoin="round" transform="rotate(7 532 522)"/>
-    ${mono ? '' : `<path d="M720 214 l22 48 48 22 -48 22 -22 48 -22 -48 -48 -22 48 -22z" fill="${SPARK}"/>`}
+    <rect x="292" y="232" width="400" height="540" rx="56" ${back} transform="rotate(-12 492 502)"/>
+    <rect x="332" y="252" width="400" height="540" rx="56" ${front} transform="rotate(6 532 522)"/>
+    <path d="M422 642 V442 L532 562 L642 442 V642" fill="none" stroke="${m}" stroke-width="52"
+      stroke-linecap="round" stroke-linejoin="round" transform="rotate(6 532 522)"/>
   </g>`;
 }
 
@@ -39,7 +33,7 @@ const svg = (body, bg = '') =>
 
 const files = {
   // Android adaptive icon: the launcher crops to the inner ~66%, so the logo is scaled down.
-  'ic_launcher_background.png': svg('', '<rect width="1024" height="1024" fill="url(#bg)"/>'),
+  'ic_launcher_background.png': svg('', `<rect width="1024" height="1024" fill="${BRAND}"/>`),
   'ic_launcher_foreground.png': svg(cards({ scale: 0.72 })),
   'ic_launcher_monochrome.png': svg(cards({ scale: 0.72, mono: true })),
   // Splash: logo drawn on the solid brand background set in res/values/colors.xml.

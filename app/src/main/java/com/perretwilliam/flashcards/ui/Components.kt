@@ -116,7 +116,7 @@ fun AppButton(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) Icon(icon, null, tint = fg, modifier = Modifier.size(20.dp))
-        if (title != null) Text(title, color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        if (title != null) Text(title, color = fg, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -145,7 +145,7 @@ fun Input(
 
 /** Pressable list row. `accent` tints the `right` badge (e.g. the deck's folder color). */
 @Composable
-fun ListRow(title: String, subtitle: String? = null, right: String? = null, accent: Color? = null, onClick: (() -> Unit)? = null) {
+fun ListRow(title: String, subtitle: String? = null, right: String? = null, accent: Color? = null, onClick: (() -> Unit)? = null, onPlay: (() -> Unit)? = null) {
     val theme = LocalTheme.current
     LayoutRow(
         Modifier.fillMaxWidth().background(theme.surface, RoundedCornerShape(Radius.md))
@@ -163,6 +163,7 @@ fun ListRow(title: String, subtitle: String? = null, right: String? = null, acce
                 T(right, variant = TextVariant.Label, color = c)
             }
         }
+        if (onPlay != null) Icon(Ic.study, null, tint = accent ?: theme.primary, modifier = Modifier.size(32.dp).clickable(onClick = onPlay).padding(Spacing.xs))
     }
 }
 

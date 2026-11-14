@@ -30,7 +30,7 @@
     <string name="dash_getStarted">Para empezar</string>
     <string name="dash_getStartedText">Crea un mazo, importa un archivo JSON o deja que una IA genere uno por ti.</string>
     <string name="dash_createDeck">Crear un mazo</string>
-    <string name="dash_studyNext">Para repasar</string>
+    <string name="dash_folders">Carpetas</string>
     <string name="dash_lastStudied">Repasado el {date}</string>
     <string name="dash_neverStudied">Nunca repasado</string>
     <string name="dash_tapHint">Toca una barra para ver ese día</string>
@@ -108,7 +108,7 @@
     <string name="settings_paste">Pegar JSON del portapapeles</string>
     <string name="settings_export">Exportar</string>
     <string name="settings_exportDecks">Exportar mazos</string>
-    <string name="settings_backup">Copia completa (mazos + historial)</string>
+    <string name="settings_backup">Copia completa</string>
     <string name="settings_danger">Zona de peligro</string>
     <string name="settings_erase">Borrar todos los datos</string>
     <string name="settings_eraseTitle">¿Borrar todo?</string>
@@ -137,7 +137,7 @@
     <string name="ai_share">Compartir prompt</string>
     <string name="ai_then">Después</string>
     <string name="ai_thenText">Copia toda la respuesta de la IA e impórtala. Los bloques de código y el texto alrededor se ignoran.</string>
-    <string name="ai_import">Importar la respuesta del portapapeles</string>
+    <string name="ai_import">Importar la respuesta</string>
     <string name="ai_copiedTitle">Prompt copiado</string>
     <string name="ai_copiedText">Pégalo en ChatGPT o Claude, copia la respuesta JSON y toca «Importar la respuesta».</string>
     <string name="ai_importFailed">Error al importar</string>
