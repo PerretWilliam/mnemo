@@ -30,7 +30,7 @@
     <string name="dash_getStarted">Pour commencer</string>
     <string name="dash_getStartedText">Crée un paquet, importe un fichier JSON ou laisse une IA en générer un pour toi.</string>
     <string name="dash_createDeck">Créer un paquet</string>
-    <string name="dash_studyNext">À réviser</string>
+    <string name="dash_folders">Dossiers</string>
     <string name="dash_lastStudied">Révisé le {date}</string>
     <string name="dash_neverStudied">Jamais révisé</string>
     <string name="dash_tapHint">Touche une barre pour voir le détail du jour</string>
@@ -40,7 +40,7 @@
     <string name="decks_title">Paquets</string>
     <string name="decks_newPlaceholder">Nom du nouveau paquet</string>
     <string name="decks_add">Ajouter</string>
-    <string name="decks_generateAi">Générer un paquet avec une IA</string>
+    <string name="decks_generateAi">Générer avec une IA</string>
     <string name="decks_newFolder">Nouveau dossier</string>
     <string name="decks_unfiled">Sans dossier</string>
     <string name="decks_empty">Aucun paquet pour l\'instant. Crées-en un ou importe un fichier JSON depuis les Réglages.</string>
@@ -49,7 +49,7 @@
     <string name="deck_folder">Dossier</string>
     <string name="deck_noFolder">Sans dossier</string>
     <string name="deck_study">Réviser ({count})</string>
-    <string name="deck_addCard">Ajouter une carte</string>
+    <string name="deck_addCard">Nouvelle carte</string>
     <string name="deck_search">Rechercher cartes et tags</string>
     <string name="deck_noCards">Aucune carte pour l\'instant.</string>
     <string name="deck_noMatch">Aucun résultat.</string>
@@ -77,7 +77,7 @@
     <string name="editor_tags">Tags (séparés par des virgules)</string>
     <string name="editor_help">Markdown pris en charge. Maths : $x^2$ en ligne, $$\\int f$$ en bloc. Trou : {{c::caché}}.</string>
     <string name="editor_preview">Aperçu</string>
-    <string name="editor_saveAnother">Enregistrer et en ajouter une autre</string>
+    <string name="editor_saveAnother">Enregistrer et continuer</string>
     <string name="editor_delete">Supprimer la carte</string>
     <string name="editor_missingFront">Recto vide</string>
     <string name="editor_missingFrontText">Le recto de la carte ne peut pas être vide.</string>
@@ -105,10 +105,10 @@
     <string name="settings_import">Importer</string>
     <string name="settings_importHelp">Format JSON : voir le générateur IA pour la structure exacte. Les erreurs sont listées carte par carte.</string>
     <string name="settings_importFile">Importer un fichier JSON</string>
-    <string name="settings_paste">Coller le JSON du presse-papiers</string>
+    <string name="settings_paste">Coller le JSON</string>
     <string name="settings_export">Exporter</string>
     <string name="settings_exportDecks">Exporter les paquets</string>
-    <string name="settings_backup">Sauvegarde complète (paquets + historique)</string>
+    <string name="settings_backup">Sauvegarde complète</string>
     <string name="settings_danger">Zone dangereuse</string>
     <string name="settings_erase">Tout effacer</string>
     <string name="settings_eraseTitle">Tout effacer ?</string>
@@ -137,7 +137,7 @@
     <string name="ai_share">Partager le prompt</string>
     <string name="ai_then">Ensuite</string>
     <string name="ai_thenText">Copie toute la réponse de l\'IA et importe-la. Les blocs de code et le texte autour sont ignorés.</string>
-    <string name="ai_import">Importer la réponse du presse-papiers</string>
+    <string name="ai_import">Importer la réponse</string>
     <string name="ai_copiedTitle">Prompt copié</string>
     <string name="ai_copiedText">Colle-le dans ChatGPT ou Claude, copie la réponse JSON, puis touche « Importer la réponse ».</string>
     <string name="ai_importFailed">Échec de l\'import</string>

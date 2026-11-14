@@ -93,16 +93,18 @@ fun HomeScreen(nav: NavHostController) {
     val locale = locale
     val haptic = LocalHapticFeedback.current
     var selected by remember { mutableIntStateOf(DAYS - 1) } // index into the days; today by default
-    val data by rememberQuery { Db.listDecks() to Db.listSessions(-1) }
-    val (decks, sessions) = data ?: return Loading()
+    val data by rememberQuery { Triple(Db.listDecks(), Db.listSessions(-1), Db.listFolders()) }
+    val (decks, sessions, folders) = data ?: return Loading()
 
     val days = dailyReviews(sessions, DAYS)
     val max = maxOf(1, days.maxOf { it.count })
     val rate = successRate(sessions)
     val lastByDeck = HashMap<Long, Long>()
     for (s in sessions) lastByDeck.putIfAbsent(s.deckId, s.endedAt) // sessions are newest first
-    // Least recently studied decks first: that's what to review next.
-    val nextUp = decks.filter { it.cardCount > 0 }.sortedBy { lastByDeck[it.id] ?: 0L }.take(3)
+    val lastByFolder = HashMap<Long, Long>()
+    for (d in decks) { val f = d.folderId ?: continue; val t = lastByDeck[d.id] ?: continue; lastByFolder[f] = maxOf(lastByFolder[f] ?: 0L, t) }
+    // Least recently studied folders first: that's what to review next.
+    val nextUp = folders.filter { it.cardCount > 0 }.sortedBy { lastByFolder[it.id] ?: 0L }.take(3)
 
     Screen("Mnemo") {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -148,14 +150,15 @@ fun HomeScreen(nav: NavHostController) {
             AppButton(tr(R.string.ai_title), onClick = { nav.navigate("ai") }, variant = ButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
         }
 
-        if (nextUp.isNotEmpty()) T(tr(R.string.dash_studyNext), variant = TextVariant.Heading)
-        for (d in nextUp) ListRow(
-            d.name,
-            subtitle = lastByDeck[d.id]?.let { tr(R.string.dash_lastStudied, "date" to DateFormat.getDateInstance(DateFormat.SHORT, locale).format(Date(it))) }
+        if (nextUp.isNotEmpty()) T(tr(R.string.dash_folders), variant = TextVariant.Heading)
+        for (f in nextUp) ListRow(
+            f.name,
+            subtitle = lastByFolder[f.id]?.let { tr(R.string.dash_lastStudied, "date" to DateFormat.getDateInstance(DateFormat.SHORT, locale).format(Date(it))) }
                 ?: tr(R.string.dash_neverStudied),
-            right = tr.plural(R.plurals.count_cards, d.cardCount),
-            accent = theme.deckColor(d.folderColor),
-            onClick = { nav.study(d.id) },
+            right = tr.plural(R.plurals.count_cards, f.cardCount),
+            accent = theme.deckColor(f.color),
+            onClick = { nav.openFolder(f.id.toString()) },
+            onPlay = { nav.studyFolder(f.id) },
         )
     }
 }
@@ -209,7 +212,7 @@ fun DecksScreen(nav: NavHostController) {
         for (section in groupByFolder(folders, decks, { it.id }, { it.folderId })) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 if (folders.isNotEmpty()) SectionHeader(nav, section.folder, section.decks.size)
-                for (d in section.decks) ListRow(d.name, right = tr.plural(R.plurals.count_cards, d.cardCount), accent = theme.deckColor(d.folderColor), onClick = { nav.openDeck(d.id) })
+                for (d in section.decks) ListRow(d.name, right = tr.plural(R.plurals.count_cards, d.cardCount), accent = theme.deckColor(d.folderColor), onClick = { nav.openDeck(d.id) }, onPlay = if (d.cardCount > 0) ({ nav.study(d.id) }) else null)
             }
         }
     }
