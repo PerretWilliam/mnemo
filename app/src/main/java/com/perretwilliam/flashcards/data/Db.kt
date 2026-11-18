@@ -9,11 +9,14 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.perretwilliam.flashcards.lib.CardInput
 import com.perretwilliam.flashcards.lib.CardStat
+import com.perretwilliam.flashcards.lib.Choice
 import com.perretwilliam.flashcards.lib.DeckInput
 import com.perretwilliam.flashcards.lib.ExchangeFile
 import com.perretwilliam.flashcards.lib.FolderInput
 import com.perretwilliam.flashcards.lib.HistoryInput
 import com.perretwilliam.flashcards.lib.SessionLike
+import com.perretwilliam.flashcards.lib.choicesFromJson
+import com.perretwilliam.flashcards.lib.choicesToJson
 import com.perretwilliam.flashcards.lib.formatIsoMillis
 import com.perretwilliam.flashcards.lib.nextFolderColor
 import com.perretwilliam.flashcards.lib.parseIsoMillis
@@ -40,7 +43,16 @@ data class Deck(
     val folderColor: String?,
 )
 
-data class Card(val id: Long, val deckId: Long, val front: String, val back: String, val tags: List<String>, val updatedAt: Long)
+/** `choices` != null: a multiple-choice card, `back` is then its explanation. */
+data class Card(
+    val id: Long,
+    val deckId: Long,
+    val front: String,
+    val back: String,
+    val tags: List<String>,
+    val updatedAt: Long,
+    val choices: List<Choice>? = null,
+)
 
 data class Session(
     val id: Long,
@@ -53,7 +65,8 @@ data class Session(
     override val wrong: Int,
 ) : SessionLike
 
-data class SessionCard(val front: String, val back: String, val correct: Boolean)
+/** One answer of a session. `back` is the right answer; `picked` is what was chosen in multiple-choice mode. */
+data class Answer(val front: String, val back: String, val correct: Boolean, val picked: String? = null)
 
 /** How to handle an imported deck whose name already exists. */
 enum class ConflictChoice { MERGE, NEW, SKIP }
@@ -61,7 +74,7 @@ enum class ConflictChoice { MERGE, NEW, SKIP }
 data class ImportResult(val decks: Int, val cards: Int)
 
 /** Bump on schema changes and add a step to `migrate`; never edit an existing step. */
-private const val SCHEMA_VERSION = 4
+private const val SCHEMA_VERSION = 5
 
 private fun migrate(db: SQLiteDatabase, from: Int) {
     if (from < 1) {
@@ -119,6 +132,11 @@ private fun migrate(db: SQLiteDatabase, from: Int) {
             )""",
         )
         db.execSQL("CREATE INDEX session_cards_session ON session_cards(session_id)")
+    }
+    if (from < 5) {
+        // Multiple choice: a card's options as JSON (null = regular card), and what was picked in a session.
+        db.execSQL("ALTER TABLE cards ADD COLUMN choices TEXT")
+        db.execSQL("ALTER TABLE session_cards ADD COLUMN picked TEXT")
     }
 }
 
@@ -242,11 +260,12 @@ object Db {
 
     // --- Cards ---
 
-    private const val CARD_COLS = "id, deck_id, front, back, tags, updated_at"
+    private const val CARD_COLS = "id, deck_id, front, back, tags, updated_at, choices"
 
     private fun card(c: Cursor) = Card(
         c.getLong(0), c.getLong(1), c.getString(2), c.getString(3),
         Json.parseToJsonElement(c.getString(4)).jsonArray.map { it.jsonPrimitive.content }, c.getLong(5),
+        choicesFromJson(c.getStringOrNull(6)),
     )
 
     private fun tagsJson(tags: List<String>) = JsonArray(tags.map(::JsonPrimitive)).toString()
@@ -266,11 +285,19 @@ object Db {
 
     private fun insertCard(deckId: Long, c: CardInput) {
         val t = now()
-        insert("cards", "deck_id" to deckId, "front" to c.front, "back" to c.back, "tags" to tagsJson(c.tags), "created_at" to t, "updated_at" to t)
+        insert(
+            "cards", "deck_id" to deckId, "front" to c.front, "back" to c.back, "tags" to tagsJson(c.tags),
+            "choices" to c.choices?.let { choicesToJson(it).toString() }, "created_at" to t, "updated_at" to t,
+        )
     }
 
     fun updateCard(id: Long, c: CardInput) =
-        write { exec("UPDATE cards SET front = ?, back = ?, tags = ?, updated_at = ? WHERE id = ?", c.front, c.back, tagsJson(c.tags), now(), id) }
+        write {
+            exec(
+                "UPDATE cards SET front = ?, back = ?, tags = ?, choices = ?, updated_at = ? WHERE id = ?",
+                c.front, c.back, tagsJson(c.tags), c.choices?.let { choicesToJson(it).toString() }, now(), id,
+            )
+        }
 
     fun deleteCard(id: Long) = write { exec("DELETE FROM cards WHERE id = ?", id) }
 
@@ -298,22 +325,22 @@ object Db {
         }
     }
 
-    /** `answers` = (card, correct) in answer order; the card text is copied into the history. */
-    fun saveSession(deckId: Long, startedAt: Long, endedAt: Long, answers: List<Pair<Card, Boolean>>) = write {
+    /** `answers` in answer order; the card text is copied into the history. */
+    fun saveSession(deckId: Long, startedAt: Long, endedAt: Long, answers: List<Answer>) = write {
         transaction {
             val id = insert(
                 "sessions", "deck_id" to deckId, "started_at" to startedAt, "ended_at" to endedAt,
-                "correct" to answers.count { it.second }, "wrong" to answers.count { !it.second },
+                "correct" to answers.count { it.correct }, "wrong" to answers.count { !it.correct },
             )
-            for ((c, ok) in answers) insert("session_cards", "session_id" to id, "front" to c.front, "back" to c.back, "correct" to if (ok) 1 else 0)
+            for (a in answers) insert("session_cards", "session_id" to id, "front" to a.front, "back" to a.back, "correct" to if (a.correct) 1 else 0, "picked" to a.picked)
         }
     }
 
     fun getSession(id: Long): Session? = listSessions(-1).firstOrNull { it.id == id }
 
     /** Answers of one session, in answer order. Empty for sessions saved before details were recorded. */
-    fun listSessionCards(sessionId: Long) = query("SELECT front, back, correct FROM session_cards WHERE session_id = ? ORDER BY id", sessionId) {
-        SessionCard(it.getString(0), it.getString(1), it.getInt(2) > 0)
+    fun listSessionCards(sessionId: Long) = query("SELECT front, back, correct, picked FROM session_cards WHERE session_id = ? ORDER BY id", sessionId) {
+        Answer(it.getString(0), it.getString(1), it.getInt(2) > 0, it.getStringOrNull(3))
     }
 
     /** Most recent first; a negative `limit` returns everything. */
@@ -377,7 +404,7 @@ object Db {
         val folderNames = folders.associate { it.id to it.name }
         return ExchangeFile(
             decks = listDecks().map { d ->
-                DeckInput(d.name, d.folderId?.let(folderNames::get), listCards(d.id).map { CardInput(it.front, it.back, it.tags) })
+                DeckInput(d.name, d.folderId?.let(folderNames::get), listCards(d.id).map { CardInput(it.front, it.back, it.tags, it.choices) })
             },
             folders = folders.takeIf { it.isNotEmpty() }?.map { FolderInput(it.name, it.color) },
             history = if (withHistory) {

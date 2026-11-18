@@ -81,7 +81,10 @@ fun AiPromptScreen(nav: NavHostController) {
         T(tr(R.string.ai_types), variant = TextVariant.Label)
         Segmented(
             types,
-            listOf(CardTypes.QA to tr(R.string.ai_typeQa), CardTypes.CLOZE to tr(R.string.ai_typeCloze), CardTypes.BOTH to tr(R.string.ai_typeBoth)),
+            listOf(
+                CardTypes.QA to tr(R.string.ai_typeQa), CardTypes.CLOZE to tr(R.string.ai_typeCloze),
+                CardTypes.MCQ to tr(R.string.ai_typeMcq), CardTypes.BOTH to tr(R.string.ai_typeBoth),
+            ),
         ) { types = it }
         Input(notes, { notes = it }, label = tr(R.string.ai_notes), placeholder = tr(R.string.ai_notesPlaceholder), multiline = true)
         AppButton(

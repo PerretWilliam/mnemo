@@ -14,7 +14,16 @@ One format for import, export and AI generation. Implemented in `app/src/main/ja
       "folder": "MA101",
       "cards": [
         { "front": "Derivative of $\\ln x$?", "back": "$\\dfrac{1}{x}$ for $x>0$", "tags": ["derivatives"] },
-        { "front": "A primitive of $\\cos$ is {{c::$\\sin$}}.", "back": "", "tags": [] }
+        { "front": "A primitive of $\\cos$ is {{c::$\\sin$}}.", "back": "", "tags": [] },
+        {
+          "front": "Which functions are even?",
+          "back": "$\\cos(-x)=\\cos x$ and $x^2$ are even; $\\sin$ is odd.",
+          "choices": [
+            { "text": "$\\cos$", "correct": true },
+            { "text": "$\\sin$", "correct": false },
+            { "text": "$x \\mapsto x^2$", "correct": true }
+          ]
+        }
       ]
     }
   ],
@@ -34,6 +43,7 @@ One format for import, export and AI generation. Implemented in `app/src/main/ja
 | `decks[].cards[].front` | string | Non-empty. Markdown + KaTeX. May contain cloze markers. |
 | `decks[].cards[].back` | string | Required for question/answer cards. Optional for cloze cards (extra explanation). |
 | `decks[].cards[].tags` | string[] | Optional, defaults to `[]`. |
+| `decks[].cards[].choices` | object[] | Optional. Makes it a multiple-choice (MCQ) card: 2 to 8 entries `{ "text": non-empty string, "correct": boolean }` (`correct` defaults to `false`), at least one correct. Several correct entries make a "select all that apply" question. Then `back` is an optional explanation. |
 | `history` | array | Optional. Exported by "Full backup". Entries reference decks by name. |
 
 - **No ids** in the file: the app creates them on import (no collisions, simpler for AIs).
@@ -44,6 +54,9 @@ One format for import, export and AI generation. Implemented in `app/src/main/ja
   folder. Files without these fields (older exports) import unchanged, as unfiled decks.
 - **Math**: `$...$` inline, `$$...$$` block (KaTeX). In JSON every backslash must be doubled:
   `"\\frac{1}{2}"`.
+- **Multiple choice**: any card without `choices` can still be asked in MCQ mode: the app uses its
+  answer (`back`, or the hidden text of a cloze) as the right option and borrows the wrong ones from
+  other cards of the deck or folder. Write `choices` yourself when the wrong options matter.
 - **Cloze**: `{{c::hidden text}}` in `front`. Braces inside are fine: `{{c::$\\frac{1}{x^{2}}$}}`.
 
 ## Validation and repair

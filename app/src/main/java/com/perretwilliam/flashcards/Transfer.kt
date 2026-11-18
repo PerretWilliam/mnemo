@@ -38,6 +38,9 @@ private fun issueString(code: IssueCode) = when (code) {
     IssueCode.HISTORY_ENTRY -> R.string.issue_historyEntry
     IssueCode.REPAIRED_BACKSLASHES -> R.string.issue_repairedBackslashes
     IssueCode.RESTORED_LATEX -> R.string.issue_restoredLatex
+    IssueCode.CHOICES_TYPE -> R.string.issue_choicesType
+    IssueCode.CHOICES_COUNT -> R.string.issue_choicesCount
+    IssueCode.CHOICES_CORRECT -> R.string.issue_choicesCorrect
 }
 
 private fun listIssues(tr: Translator, issues: List<Issue>): String {

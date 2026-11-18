@@ -24,6 +24,7 @@ fun ExchangeFile.toJson(): String = pretty.encodeToString(
                         put("front", c.front)
                         put("back", c.back)
                         put("tags", JsonArray(c.tags.map(::JsonPrimitive)))
+                        c.choices?.let { put("choices", choicesToJson(it)) }
                     })
                 })
             })

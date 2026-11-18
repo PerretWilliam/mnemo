@@ -50,7 +50,7 @@ app/src/main/java/com/perretwilliam/flashcards/
   data/Db.kt             SQLite schema, migrations, queries, import/export; data/Prefs.kt: session size
   lib/                   PURE Kotlin, no Android imports, unit-tested (app/src/test)
   ui/                    Theme, Components (themed primitives, Select, DetailScreen), Dialogs, MathMarkdown, App (nav + tabs)
-  ui/screens/            Tabs.kt (home, decks, history, settings), Deck.kt (deck, folder, card editor), Session.kt, AiPrompt.kt
+  ui/screens/            Tabs.kt (home, decks, history, settings), Deck.kt (deck, folder, card editor), Session.kt, Mcq.kt (MCQ options + question UI), AiPrompt.kt
 app/src/main/assets/render/   marked + KaTeX + render.js (offline)
 scripts/build-icons.mjs  logo -> launcher/splash PNGs in res/drawable-nodpi
 docs/FORMAT.md           JSON exchange format spec
@@ -92,7 +92,12 @@ version.txt              single source of truth for the version (bumped by relea
   `drawCards` (`lib/Sampling.kt`) weights cards by their `card_stats` row, spaced-repetition style: missed,
   never-seen and overdue cards (interval grows with the correct streak) are drawn more often than recently
   reviewed ones. Stats and per-card answers (`session_cards`, shown read-only from History) are written when a session ends.
-- Out of scope for now: spaced repetition, multi-device sync, images.
+- Two study modes (`StudyMode`, remembered in `Prefs`): flashcards, and MCQ. A card with `choices` is an authored
+  multiple-choice card (`back` = explanation); any other card can be asked too: `buildQuestion` (`lib/Mcq.kt`)
+  takes its answer as the right option and borrows wrong ones from the deck/folder, favoring same tags and similar length.
+  All MCQ options live in `McqConfig` (`Prefs.mcq`); add a new one there, in `McqOptions` and in the strings.
+  MCQ answers feed the same `card_stats` and history (`session_cards.picked` holds what was chosen).
+- Out of scope for now: multi-device sync, images.
 
 ## Git workflow
 

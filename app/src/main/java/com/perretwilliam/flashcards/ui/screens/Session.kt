@@ -47,11 +47,16 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.perretwilliam.flashcards.LocalTr
 import com.perretwilliam.flashcards.R
+import com.perretwilliam.flashcards.data.Answer
 import com.perretwilliam.flashcards.data.Card
 import com.perretwilliam.flashcards.data.Db
 import com.perretwilliam.flashcards.data.Prefs
 import com.perretwilliam.flashcards.data.io
+import com.perretwilliam.flashcards.lib.McqQuestion
+import com.perretwilliam.flashcards.lib.McqSource
+import com.perretwilliam.flashcards.lib.StudyMode
 import com.perretwilliam.flashcards.lib.answerSource
+import com.perretwilliam.flashcards.lib.buildQuestion
 import com.perretwilliam.flashcards.lib.drawCards
 import com.perretwilliam.flashcards.lib.isCloze
 import com.perretwilliam.flashcards.lib.renderCloze
@@ -76,13 +81,20 @@ import com.perretwilliam.flashcards.ui.launchSafe
 import com.perretwilliam.flashcards.ui.deckColor
 import kotlin.math.abs
 import kotlin.math.sign
+import kotlin.random.Random
 import kotlinx.coroutines.launch
 
 private val SWIPE_THRESHOLD = 110.dp
 
-private class Result(val card: Card, val correct: Boolean)
+/** `answer` is the right answer (as text, for the recap and history); `picked` is what was chosen in MCQ mode. */
+private class Result(val card: Card, val correct: Boolean, val answer: String, val picked: String? = null)
 
-/** Studies one deck, or a whole folder when [isFolder]. Swipe left = correct, swipe right = missed. */
+private fun Card.source() = McqSource(id, front, back, tags, choices)
+
+/** The cards a session draws from, and the whole deck or folder they were taken from (wrong answers come from there). */
+private class Pool(val cards: List<Card>, val all: List<Card>)
+
+/** Studies one deck, or a whole folder when [isFolder], as flashcards (swipe left = correct, right = missed) or multiple choice. */
 @Composable
 fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
     val tr = LocalTr.current
@@ -95,14 +107,29 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
     val results = remember { mutableStateListOf<Result>() }
     var flipped by remember { mutableStateOf(false) }
     var startedAt by remember { mutableLongStateOf(0L) }
+    var mode by remember { mutableStateOf(Prefs.studyMode) }
+    var mcq by remember { mutableStateOf(Prefs.mcq) }
+    var questions by remember { mutableStateOf(emptyMap<Long, McqQuestion>()) }
+    var pool by remember { mutableStateOf(emptyList<Card>()) }
+    var showOptions by remember { mutableStateOf(false) }
 
     // A fresh random sample (size from Settings); missed and never-seen cards are favored.
-    suspend fun draw(): List<Card> = io {
-        val cards = if (isFolder) Db.listFolderCards(id) else Db.listCards(id)
-        drawCards(cards, { it.id }, Db.getCardStats(), Prefs.sessionSize)
+    suspend fun draw(): Pool = io {
+        val all = if (isFolder) Db.listFolderCards(id) else Db.listCards(id)
+        // In MCQ mode only cards that can be asked take a slot: authored ones, or any card when generating (needs a second card to borrow from).
+        val askable = if (Prefs.studyMode == StudyMode.MCQ) all.filter { it.choices != null || (Prefs.mcq.generate && all.size > 1) } else all
+        Pool(drawCards(askable, { it.id }, Db.getCardStats(), Prefs.sessionSize), all)
     }
-    fun start(cards: List<Card>) {
-        round = cards
+    fun start(p: Pool) {
+        mode = Prefs.studyMode
+        mcq = Prefs.mcq
+        pool = p.all
+        val asked = if (mode == StudyMode.MCQ) {
+            val sources = p.all.map { it.source() }
+            p.cards.mapNotNull { c -> buildQuestion(c.source(), sources, mcq) { Random.nextDouble(1e-12, 1.0) }?.let { c to it } }
+        } else p.cards.map { it to null }
+        questions = asked.mapNotNull { (c, q) -> q?.let { c.id to it } }.toMap()
+        round = asked.map { it.first }
         results.clear()
         flipped = false
         startedAt = System.currentTimeMillis()
@@ -118,7 +145,13 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
     val color = theme.deckColor(folderColor)
     val back = { nav.popBackStack(); Unit }
     if (cards == null) return DetailScreen(title, back, color) { Loading() }
-    if (cards.isEmpty()) return DetailScreen(title, back, color) { Empty(tr(R.string.deck_noCards)) }
+    if (cards.isEmpty()) return DetailScreen(title, back, color) {
+        if (mode == StudyMode.MCQ) {
+            Empty(tr(R.string.mcq_noQuestions))
+            AppButton(tr(R.string.study_options), Ic.tune, { showOptions = true }, Modifier.fillMaxWidth(), ButtonVariant.Secondary)
+        } else Empty(tr(R.string.deck_noCards))
+        if (showOptions) StudyOptionsSheet { changed -> showOptions = false; if (changed) scope.launch { start(draw()) } }
+    }
 
     val finished = results.size == cards.size
     LaunchedEffect(finished) {
@@ -128,7 +161,7 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
         io {
             val endedAt = System.currentTimeMillis()
             for ((deckId, rs) in snapshot.groupBy { it.card.deckId }) {
-                Db.saveSession(deckId, startedAt, endedAt, rs.map { it.card to it.correct })
+                Db.saveSession(deckId, startedAt, endedAt, rs.map { Answer(it.card.front, it.answer, it.correct, it.picked) })
             }
             Db.recordAnswers(snapshot.map { it.card.id to it.correct })
         }
@@ -137,7 +170,7 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
     if (finished) {
         return DetailScreen(title, back, color) {
             Recap(results, onRestart = { missed ->
-                if (missed != null) start(drawCards(missed, { it.id }, emptyMap(), 0)) else scope.launch { start(draw()) }
+                if (missed != null) start(Pool(drawCards(missed, { it.id }, emptyMap(), 0), pool)) else scope.launch { start(draw()) }
             }, onDone = back)
         }
     }
@@ -145,40 +178,52 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
     val card = cards[results.size]
     fun record(correct: Boolean) {
         haptic.performHapticFeedback(if (correct) HapticFeedbackType.Confirm else HapticFeedbackType.Reject)
-        results.add(Result(card, correct))
+        results.add(Result(card, correct, card.back))
         flipped = false
     }
     DetailScreen(title, back, color, scroll = false) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             T("${results.size + 1} / ${cards.size}", variant = TextVariant.Label, color = color)
-            Icon(
-                Ic.delete, tr(R.string.card_deleteTitle), tint = theme.textSecondary,
-                modifier = Modifier.size(32.dp).clickable {
-                    scope.launchSafe(tr) {
-                        if (confirm(tr(R.string.card_deleteTitle), tr(R.string.common_cannotUndo), tr(R.string.common_cancel), tr(R.string.common_delete))) {
-                            io { Db.deleteCard(card.id) }
-                            round = cards - card // the next card slides into this position
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Icon(Ic.tune, tr(R.string.study_options), tint = theme.textSecondary, modifier = Modifier.size(32.dp).clickable { showOptions = true }.padding(Spacing.xs))
+                Icon(
+                    Ic.delete, tr(R.string.card_deleteTitle), tint = theme.textSecondary,
+                    modifier = Modifier.size(32.dp).clickable {
+                        scope.launchSafe(tr) {
+                            if (confirm(tr(R.string.card_deleteTitle), tr(R.string.common_cannotUndo), tr(R.string.common_cancel), tr(R.string.common_delete))) {
+                                io { Db.deleteCard(card.id) }
+                                round = cards - card // the next card slides into this position
+                            }
                         }
-                    }
-                }.padding(Spacing.xs),
-            )
+                    }.padding(Spacing.xs),
+                )
+            }
         }
         Box(Modifier.fillMaxWidth().height(6.dp).background(theme.muted, RoundedCornerShape(3.dp))) {
             Box(Modifier.fillMaxWidth(results.size / cards.size.toFloat()).fillMaxHeight().background(color, RoundedCornerShape(3.dp)))
         }
-        androidx.compose.runtime.key(card.id, results.size) {
-            SwipeCard(card, color, flipped, { haptic.performHapticFeedback(HapticFeedbackType.SegmentTick); flipped = !flipped }, ::record, Modifier.weight(1f))
-        }
-        // Buttons follow the swipe directions: correct on the left, missed on the right.
-        Row(Modifier.fillMaxWidth().navigationBarsPadding(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            AppButton(tr(R.string.session_gotIt), Ic.check, { record(true) }, Modifier.weight(1f), container = theme.success)
-            AppButton(
-                null, Ic.undo, { haptic.performHapticFeedback(HapticFeedbackType.SegmentTick); results.removeLastOrNull(); flipped = false },
-                Modifier.width(56.dp), ButtonVariant.Secondary, enabled = results.isNotEmpty(),
-            )
-            AppButton(tr(R.string.session_missed), Ic.wrong, { record(false) }, Modifier.weight(1f), container = theme.danger)
+        val question = questions[card.id]
+        if (mode == StudyMode.MCQ && question != null) {
+            androidx.compose.runtime.key(card.id, results.size) {
+                McqPlay(question, mcq, color, { ok, picked -> results.add(Result(card, ok, question.answer, picked)) }, Modifier.weight(1f))
+            }
+        } else {
+            androidx.compose.runtime.key(card.id, results.size) {
+                SwipeCard(card, color, flipped, { haptic.performHapticFeedback(HapticFeedbackType.SegmentTick); flipped = !flipped }, ::record, Modifier.weight(1f))
+            }
+            // Buttons follow the swipe directions: correct on the left, missed on the right.
+            Row(Modifier.fillMaxWidth().navigationBarsPadding(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                AppButton(tr(R.string.session_gotIt), Ic.check, { record(true) }, Modifier.weight(1f), container = theme.success)
+                AppButton(
+                    null, Ic.undo, { haptic.performHapticFeedback(HapticFeedbackType.SegmentTick); results.removeLastOrNull(); flipped = false },
+                    Modifier.width(56.dp), ButtonVariant.Secondary, enabled = results.isNotEmpty(),
+                )
+                AppButton(tr(R.string.session_missed), Ic.wrong, { record(false) }, Modifier.weight(1f), container = theme.danger)
+            }
         }
     }
+    // Changing the mode or its options starts a fresh session with them.
+    if (showOptions) StudyOptionsSheet { changed -> showOptions = false; if (changed) scope.launch { start(draw()) } }
 }
 
 @Composable
@@ -267,5 +312,5 @@ private fun ColumnScope.Recap(results: SnapshotStateList<Result>, onRestart: (Li
     AppButton(tr(R.string.session_restart), Ic.study, { onRestart(null) }, Modifier.fillMaxWidth(), ButtonVariant.Secondary)
     AppButton(tr(R.string.common_done), Ic.done, onDone, Modifier.fillMaxWidth(), ButtonVariant.Secondary)
     if (missed.isNotEmpty()) T(tr(R.string.session_missedCards), variant = TextVariant.Label)
-    for (c in missed) ListRow(stripCloze(c.front), stripCloze(c.back))
+    for (r in results.filter { !it.correct }) ListRow(stripCloze(r.card.front), stripCloze(r.answer))
 }

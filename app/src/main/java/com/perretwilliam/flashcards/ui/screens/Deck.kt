@@ -2,6 +2,8 @@ package com.perretwilliam.flashcards.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,11 +12,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -29,7 +33,10 @@ import com.perretwilliam.flashcards.data.Db
 import com.perretwilliam.flashcards.data.Prefs
 import com.perretwilliam.flashcards.data.io
 import com.perretwilliam.flashcards.lib.CardInput
+import com.perretwilliam.flashcards.lib.Choice
 import com.perretwilliam.flashcards.lib.FOLDER_COLORS
+import com.perretwilliam.flashcards.lib.MAX_CHOICES
+import com.perretwilliam.flashcards.lib.MIN_CHOICES
 import com.perretwilliam.flashcards.lib.answerSource
 import com.perretwilliam.flashcards.lib.isCloze
 import com.perretwilliam.flashcards.lib.nextFolderColor
@@ -45,6 +52,8 @@ import com.perretwilliam.flashcards.ui.ListRow
 import com.perretwilliam.flashcards.ui.Loading
 import com.perretwilliam.flashcards.ui.LocalTheme
 import com.perretwilliam.flashcards.ui.MathMarkdown
+import com.perretwilliam.flashcards.ui.Radius
+import com.perretwilliam.flashcards.ui.Segmented
 import com.perretwilliam.flashcards.ui.Select
 import com.perretwilliam.flashcards.ui.Spacing
 import com.perretwilliam.flashcards.ui.Surface
@@ -73,6 +82,7 @@ fun DeckScreen(nav: NavHostController, id: Long) {
     val data by rememberQuery(id) { Triple(Db.getDeck(id), Db.listCards(id), Db.listFolders()) }
     var query by remember { mutableStateOf("") }
     var name by remember { mutableStateOf<String?>(null) }
+    var mode by remember { mutableStateOf(Prefs.studyMode) }
 
     val loaded = data
     if (loaded == null) return DetailScreen("", { nav.popBackStack() }) { Loading() }
@@ -96,6 +106,7 @@ fun DeckScreen(nav: NavHostController, id: Long) {
             { v -> scope.launchSafe(tr) { io { Db.setDeckFolder(id, v.takeIf { it >= 0 }) } } },
             label = tr(R.string.deck_folder),
         )
+        if (cards.isNotEmpty()) ModeSwitch(mode) { mode = it; Prefs.studyMode = it }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             AppButton(
                 tr(R.string.deck_study, "count" to sessionLength(cards.size, Prefs.sessionSize)), Ic.study, { nav.study(id) },
@@ -116,7 +127,11 @@ fun DeckScreen(nav: NavHostController, id: Long) {
                 },
             ),
         ) {
-            ListRow(preview(c.front), listOf(preview(c.back), c.tags.joinToString(" ") { "#$it" }).filter { it.isNotEmpty() }.joinToString("  ·  "))
+            val answer = c.choices?.filter { it.correct }?.joinToString(" · ") { it.text } ?: c.back
+            ListRow(
+                preview(c.front), listOf(preview(answer), c.tags.joinToString(" ") { "#$it" }).filter { it.isNotEmpty() }.joinToString("  ·  "),
+                right = if (c.choices != null) tr(R.string.card_mcqBadge) else null,
+            )
         }
         if (cards.isNotEmpty()) T(tr(R.string.deck_hint), variant = TextVariant.Caption)
         AppButton(
@@ -145,6 +160,7 @@ fun FolderScreen(nav: NavHostController, param: String) {
     val data by rememberQuery(param) { (if (isNew) null else Db.getFolder(id)) to nextFolderColor(Db.listFolders().map { it.color }) }
     var name by remember { mutableStateOf<String?>(null) }
     var color by remember { mutableStateOf<String?>(null) }
+    var mode by remember { mutableStateOf(Prefs.studyMode) }
 
     val loaded = data
     if (loaded == null) return DetailScreen("", { nav.popBackStack() }) { Loading() }
@@ -174,6 +190,7 @@ fun FolderScreen(nav: NavHostController, param: String) {
         }
         if (folder != null) {
             T(tr.plural(R.plurals.count_decks, folder.deckCount), variant = TextVariant.Caption)
+            if (folder.cardCount > 0) ModeSwitch(mode) { mode = it; Prefs.studyMode = it }
             AppButton(
                 tr(R.string.deck_study, "count" to sessionLength(folder.cardCount, Prefs.sessionSize)), Ic.study,
                 { nav.studyFolder(folder.id) }, Modifier.fillMaxWidth(), ButtonVariant.Secondary, enabled = folder.cardCount > 0,
@@ -207,15 +224,27 @@ fun CardEditorScreen(nav: NavHostController, cardId: Long, deckId: Long) {
     var back by remember { mutableStateOf("") }
     var tags by remember { mutableStateOf("") }
     var preview by remember { mutableStateOf("") }
+    var mcq by remember { mutableStateOf(false) }
+    val choices = remember { mutableStateListOf<Choice>() }
+    fun blankChoices() { choices.clear(); repeat(4) { choices.add(Choice("", false)) } }
 
     LaunchedEffect(cardId) {
-        if (!isNew) io { Db.getCard(cardId) }?.let { front = it.front; back = it.back; tags = it.tags.joinToString(", ") }
+        if (!isNew) io { Db.getCard(cardId) }?.let {
+            front = it.front; back = it.back; tags = it.tags.joinToString(", ")
+            it.choices?.let { c -> mcq = true; choices.addAll(c) }
+        }
         loaded = true
     }
     // Debounced so the WebView doesn't reload on every keystroke.
-    LaunchedEffect(front, back) {
+    LaunchedEffect(front, back, mcq, choices.toList()) {
         delay(400)
-        preview = if (front.isNotBlank()) answerSource(front, back) else ""
+        preview = when {
+            front.isBlank() -> ""
+            // Correct options are bold.
+            mcq -> answerSource(front, "") + "\n\n" + choices.filter { it.text.isNotBlank() }.joinToString("\n") { "- " + if (it.correct) "**${it.text}**" else it.text } +
+                if (back.isNotBlank()) "\n\n---\n\n$back" else ""
+            else -> answerSource(front, back)
+        }
     }
 
     val title = tr(if (isNew) R.string.editor_newTitle else R.string.editor_editTitle)
@@ -225,17 +254,40 @@ fun CardEditorScreen(nav: NavHostController, cardId: Long, deckId: Long) {
         scope.launchSafe(tr) {
             val ok = tr(R.string.common_ok)
             if (front.isBlank()) return@launchSafe alert(tr(R.string.editor_missingFront), tr(R.string.editor_missingFrontText), ok)
-            if (!isCloze(front) && back.isBlank()) return@launchSafe alert(tr(R.string.editor_missingBack), tr(R.string.editor_missingBackText), ok)
-            val card = CardInput(front, back, tags.split(",").map { it.trim() }.filter { it.isNotEmpty() })
+            // Empty options are dropped.
+            val options = if (mcq) choices.map { Choice(it.text.trim(), it.correct) }.filter { it.text.isNotEmpty() } else null
+            if (options != null) {
+                if (options.size < MIN_CHOICES) return@launchSafe alert(tr(R.string.editor_missingChoices), tr(R.string.editor_missingChoicesText, "min" to MIN_CHOICES), ok)
+                if (options.none { it.correct }) return@launchSafe alert(tr(R.string.editor_missingCorrect), tr(R.string.editor_missingCorrectText), ok)
+            } else if (!isCloze(front) && back.isBlank()) return@launchSafe alert(tr(R.string.editor_missingBack), tr(R.string.editor_missingBackText), ok)
+            val card = CardInput(front, back, tags.split(",").map { it.trim() }.filter { it.isNotEmpty() }, options)
             io { if (isNew) Db.createCard(deckId, card) else Db.updateCard(cardId, card) }
-            if (addAnother) { front = ""; back = "" } else nav.popBackStack()
+            if (addAnother) { front = ""; back = ""; if (mcq) blankChoices() } else nav.popBackStack()
         }
         Unit
     }
 
     DetailScreen(title, { nav.popBackStack() }) {
-        Input(front, { front = it }, label = tr(R.string.editor_front), placeholder = tr(R.string.editor_frontPlaceholder), multiline = true)
-        Input(back, { back = it }, label = tr(R.string.editor_back), placeholder = tr(R.string.editor_backPlaceholder), multiline = true)
+        Segmented(mcq, listOf(false to tr(R.string.editor_typeStandard), true to tr(R.string.editor_typeMcq))) {
+            mcq = it
+            if (it && choices.isEmpty()) blankChoices()
+        }
+        Input(
+            front, { front = it }, label = tr(if (mcq) R.string.editor_question else R.string.editor_front),
+            placeholder = if (mcq) null else tr(R.string.editor_frontPlaceholder), multiline = true,
+        )
+        if (mcq) {
+            T(tr(R.string.editor_choices), variant = TextVariant.Label)
+            choices.forEachIndexed { i, c ->
+                ChoiceRow(i, c, { choices[i] = it }, if (choices.size > MIN_CHOICES) ({ choices.removeAt(i) }) else null)
+            }
+            if (choices.size < MAX_CHOICES) AppButton(tr(R.string.editor_addChoice), Ic.add, { choices.add(Choice("", false)) }, Modifier.fillMaxWidth(), ButtonVariant.Secondary)
+            T(tr(R.string.editor_mcqHelp), variant = TextVariant.Caption)
+        }
+        Input(
+            back, { back = it }, label = tr(if (mcq) R.string.editor_explanation else R.string.editor_back),
+            placeholder = if (mcq) null else tr(R.string.editor_backPlaceholder), multiline = true,
+        )
         Input(tags, { tags = it }, label = tr(R.string.editor_tags))
         T(tr(R.string.editor_help), variant = TextVariant.Caption)
         if (preview.isNotEmpty()) Surface(tint = theme.primary) {
@@ -256,5 +308,26 @@ fun CardEditorScreen(nav: NavHostController, cardId: Long, deckId: Long) {
             },
             Modifier.fillMaxWidth(), ButtonVariant.Danger,
         )
+    }
+}
+
+/** One option of a multiple-choice card: tap the badge to mark it correct. */
+@Composable
+private fun ChoiceRow(index: Int, choice: Choice, onChange: (Choice) -> Unit, onRemove: (() -> Unit)?) {
+    val tr = LocalTr.current
+    val theme = LocalTheme.current
+    val shape = RoundedCornerShape(Radius.sm)
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.size(44.dp).background(if (choice.correct) theme.success else theme.surface, shape)
+                .border(1.5.dp, if (choice.correct) theme.success else theme.border, shape)
+                .clickable { onChange(choice.copy(correct = !choice.correct)) },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (choice.correct) Icon(Ic.check, tr(R.string.editor_choiceCorrect), tint = theme.onPrimary)
+            else T(('A' + index).toString(), variant = TextVariant.Label)
+        }
+        Input(choice.text, { onChange(choice.copy(text = it)) }, Modifier.weight(1f), placeholder = tr(R.string.editor_choicePlaceholder, "n" to index + 1))
+        if (onRemove != null) Icon(Ic.delete, tr(R.string.common_delete), tint = theme.textSecondary, modifier = Modifier.size(32.dp).clickable(onClick = onRemove).padding(Spacing.xs))
     }
 }

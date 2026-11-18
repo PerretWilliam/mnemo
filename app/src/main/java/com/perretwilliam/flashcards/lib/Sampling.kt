@@ -27,19 +27,22 @@ fun cardWeight(stat: CardStat? = null, now: Long = System.currentTimeMillis()): 
 /** How many cards a session will hold: the chosen size, capped by what exists (0 = all). */
 fun sessionLength(total: Int, size: Int) = if (size > 0) minOf(size, total) else total
 
+/** Never exactly 0: 0^(1/w) would tie every item. */
+private val defaultRng = { Random.nextDouble(1e-12, 1.0) }
+
 /**
- * Weighted sampling without replacement (Efraimidis-Spirakis): each card gets the key `u^(1/w)` with
+ * Weighted sampling without replacement (Efraimidis-Spirakis): each item gets the key `u^(1/w)` with
  * `u` uniform in (0, 1), and the `size` largest keys win. The result is already in random order.
- * `size` of 0 (or more than available) returns every card.
  */
+fun <T> weightedSample(items: List<T>, weight: (T) -> Double, size: Int, rng: () -> Double = defaultRng): List<T> =
+    items.map { it to rng().pow(1 / weight(it)) }.sortedByDescending { it.second }.take(size).map { it.first }
+
+/** Draws a session's cards by [cardWeight]. `size` of 0 (or more than available) returns every card. */
 fun <C> drawCards(
     cards: List<C>,
     id: (C) -> Long,
     stats: Map<Long, CardStat>,
     size: Int,
-    rng: () -> Double = { Random.nextDouble(1e-12, 1.0) }, // never exactly 0: 0^(1/w) would tie every card
+    rng: () -> Double = defaultRng,
     now: Long = System.currentTimeMillis(),
-): List<C> {
-    val sorted = cards.map { it to rng().pow(1 / cardWeight(stats[id(it)], now)) }.sortedByDescending { it.second }
-    return (if (size > 0) sorted.take(size) else sorted).map { it.first }
-}
+): List<C> = weightedSample(cards, { cardWeight(stats[id(it)], now) }, if (size > 0) size else cards.size, rng)

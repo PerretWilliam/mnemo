@@ -15,7 +15,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
-data class CardInput(val front: String, val back: String, val tags: List<String>)
+/** `choices` makes it a multiple-choice card (`back` is then an optional explanation); null for regular and cloze cards. */
+data class CardInput(val front: String, val back: String, val tags: List<String>, val choices: List<Choice>? = null)
 data class DeckInput(val name: String, val folder: String? = null, val cards: List<CardInput>)
 data class FolderInput(val name: String, val color: String)
 data class HistoryInput(val deck: String, val startedAt: String, val endedAt: String, val correct: Int, val wrong: Int)
@@ -29,7 +30,7 @@ data class ExchangeFile(
 enum class IssueCode {
     INVALID_JSON, ROOT_OBJECT, VERSION, DECKS_ARRAY, DECK_NAME, CARDS_ARRAY, DECK_FOLDER, FOLDERS_ARRAY,
     FOLDER_ENTRY, FRONT, BACK_TYPE, TAGS, BACK_REQUIRED, HISTORY_ARRAY, HISTORY_ENTRY, REPAIRED_BACKSLASHES,
-    RESTORED_LATEX,
+    RESTORED_LATEX, CHOICES_TYPE, CHOICES_COUNT, CHOICES_CORRECT,
 }
 
 data class Issue(val code: IssueCode, val params: Map<String, Any> = emptyMap())
@@ -171,13 +172,30 @@ fun parseExchange(raw: String): ParseResult {
                 errors += Issue(IssueCode.TAGS, where)
                 return@card
             }
+            var choices: List<Choice>? = null
+            if (card.containsKey("choices")) {
+                val parsed = (card["choices"] as? JsonArray)?.map(::parseChoice)
+                if (parsed == null || parsed.any { it == null }) {
+                    errors += Issue(IssueCode.CHOICES_TYPE, where)
+                    return@card
+                }
+                if (parsed.size !in MIN_CHOICES..MAX_CHOICES) {
+                    errors += Issue(IssueCode.CHOICES_COUNT, where + ("min" to MIN_CHOICES) + ("max" to MAX_CHOICES))
+                    return@card
+                }
+                if (parsed.none { it!!.correct }) {
+                    errors += Issue(IssueCode.CHOICES_CORRECT, where)
+                    return@card
+                }
+                choices = parsed.map { Choice(fix(it!!.text), it.correct) }
+            }
             val fixedFront = fix(front)
             val fixedBack = fix(card["back"].str() ?: "")
-            if (!fixedFront.contains("{{c::") && fixedBack.isBlank()) {
+            if (choices == null && !fixedFront.contains("{{c::") && fixedBack.isBlank()) {
                 errors += Issue(IssueCode.BACK_REQUIRED, where)
                 return@card
             }
-            cards += CardInput(fixedFront, fixedBack, tags.orEmpty().map { it!!.trim() }.filter { it.isNotEmpty() })
+            cards += CardInput(fixedFront, fixedBack, tags.orEmpty().map { it!!.trim() }.filter { it.isNotEmpty() }, choices)
         }
         var folder: String? = null
         if (deck.containsKey("folder")) {
