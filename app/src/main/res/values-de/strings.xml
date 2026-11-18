@@ -84,7 +84,6 @@
     <string name="editor_missingBack">Rückseite fehlt</string>
     <string name="editor_missingBackText">Füge eine Antwort hinzu oder nutze {{c::...}} auf der Vorderseite für einen Lückentext.</string>
     <string name="session_title">Lernen</string>
-    <string name="session_swipeHint">Links: gewusst · rechts: falsch</string>
     <string name="session_tapToFlip">Zum Umdrehen tippen</string>
     <string name="session_gotIt">Gewusst</string>
     <string name="session_missed">Falsch</string>
@@ -95,6 +94,9 @@
     <string name="session_restart">Neue Sitzung</string>
     <string name="session_missedCards">Falsche Karten</string>
     <string name="history_title">Verlauf</string>
+    <string name="history_noDetails">Für diese Sitzung wurden keine Kartendetails gespeichert.</string>
+    <string name="history_missedCards">Falsch ({count})</string>
+    <string name="history_correctCards">Richtig ({count})</string>
     <string name="history_empty">Noch keine Lernsitzungen.</string>
     <string name="settings_title">Einstellungen</string>
     <string name="settings_language">App-Sprache</string>

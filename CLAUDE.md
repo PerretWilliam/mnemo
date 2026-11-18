@@ -89,8 +89,9 @@ version.txt              single source of truth for the version (bumped by relea
   (`\int`) and silently-valid ones (`\frac` -> form feed). Keep tests for this green.
 - Session: **swipe left = correct, swipe right = missed**. Buttons mirror that order.
 - A session is a random sample of N cards (Settings, 0 = all) from a deck or a whole folder.
-  `drawCards` (`lib/Sampling.kt`) weights cards by their `card_stats` row: missed and
-  never-seen cards are drawn more often than mastered ones. Stats are written when a session ends.
+  `drawCards` (`lib/Sampling.kt`) weights cards by their `card_stats` row, spaced-repetition style: missed,
+  never-seen and overdue cards (interval grows with the correct streak) are drawn more often than recently
+  reviewed ones. Stats and per-card answers (`session_cards`, shown read-only from History) are written when a session ends.
 - Out of scope for now: spaced repetition, multi-device sync, images.
 
 ## Git workflow

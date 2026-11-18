@@ -84,7 +84,6 @@
     <string name="editor_missingBack">Falta el reverso</string>
     <string name="editor_missingBackText">Añade una respuesta, o usa {{c::...}} en el anverso para crear una tarjeta con huecos.</string>
     <string name="session_title">Estudiar</string>
-    <string name="session_swipeHint">Izquierda: lo sé · derecha: fallada</string>
     <string name="session_tapToFlip">Toca para girar</string>
     <string name="session_gotIt">Lo sé</string>
     <string name="session_missed">Fallada</string>
@@ -95,6 +94,9 @@
     <string name="session_restart">Nueva sesión</string>
     <string name="session_missedCards">Tarjetas falladas</string>
     <string name="history_title">Historial</string>
+    <string name="history_noDetails">No se guardaron detalles de las tarjetas de esta sesión.</string>
+    <string name="history_missedCards">Falladas ({count})</string>
+    <string name="history_correctCards">Acertadas ({count})</string>
     <string name="history_empty">Aún no hay sesiones.</string>
     <string name="settings_title">Ajustes</string>
     <string name="settings_language">Idioma de la app</string>

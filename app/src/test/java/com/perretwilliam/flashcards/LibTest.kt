@@ -171,11 +171,16 @@ class LibTest {
 
     private data class C(val id: Long)
 
-    @Test fun `sampling - never-seen and missed cards weigh more than mastered ones`() {
-        assertTrue(cardWeight() > cardWeight(CardStat(3, 1)))
-        assertTrue(cardWeight(CardStat(3, 0)) > cardWeight(CardStat(3, 1)))
-        assertTrue(cardWeight(CardStat(3, 1)) > cardWeight(CardStat(3, 4)))
-        assertTrue(cardWeight(CardStat(9, 50)) > 0) // mastered cards still come back
+    @Test fun `sampling - due and missed cards weigh more than fresh ones, intervals expand`() {
+        val now = 1_000L * 86_400_000
+        fun ago(days: Double) = now - (days * 86_400_000).toLong()
+        val justSeen = cardWeight(CardStat(3, 2, ago(0.0)), now)
+        val due = cardWeight(CardStat(3, 2, ago(4.0)), now) // streak 2 = 3 day interval
+        assertTrue(due > 2 && justSeen < 0.2)
+        assertTrue(cardWeight(CardStat(3, 0, ago(0.0)), now) > cardWeight(CardStat(3, 2, ago(1.0)), now)) // missed beats still-fresh
+        assertTrue(cardWeight(CardStat(3, 4, ago(10.0)), now) < cardWeight(CardStat(3, 4, ago(40.0)), now)) // more overdue = heavier
+        assertTrue(cardWeight(CardStat(3, 2, ago(2.0)), now) > cardWeight(CardStat(3, 5, ago(2.0)), now)) // higher streak = longer wait
+        assertTrue(cardWeight(null, now) > justSeen && cardWeight(CardStat(9, 50, ago(0.0)), now) > 0) // never excluded
         assertEquals(10, sessionLength(30, 10))
         assertEquals(3, sessionLength(3, 10))
         assertEquals(30, sessionLength(30, 0))
@@ -192,19 +197,20 @@ class LibTest {
         assertEquals(emptyList<C>(), drawCards(emptyList<C>(), { it.id }, emptyMap(), 5))
     }
 
-    @Test fun `sampling - missed and unseen cards are drawn more often than mastered ones`() {
-        // 10 mastered cards, 5 missed, 5 never seen; sessions of 5.
+    @Test fun `sampling - overdue and missed cards are drawn more often than recently reviewed ones`() {
+        // 10 reviewed today (streak 3), 5 missed, 5 overdue (streak 3, 30 days ago); sessions of 5.
+        val now = 1_000L * 86_400_000
         val cards = List(20) { C(it.toLong()) }
         val stats = buildMap {
-            for (id in 0L until 10) put(id, CardStat(6, 5))
-            for (id in 10L until 15) put(id, CardStat(2, 0))
+            for (id in 0L until 10) put(id, CardStat(6, 3, now))
+            for (id in 10L until 15) put(id, CardStat(2, 0, now - 86_400_000))
+            for (id in 15L until 20) put(id, CardStat(6, 3, now - 30 * 86_400_000L))
         }
         val rng = seeded(42)
-        val hits = intArrayOf(0, 0, 0) // mastered, missed, unseen
+        val hits = intArrayOf(0, 0, 0) // fresh, missed, overdue
         repeat(2000) {
-            for (c in drawCards(cards, { it.id }, stats, 5, rng)) hits[if (c.id < 10) 0 else if (c.id < 15) 1 else 2]++
+            for (c in drawCards(cards, { it.id }, stats, 5, rng, now)) hits[if (c.id < 10) 0 else if (c.id < 15) 1 else 2]++
         }
-        // Per card: mastered weight 0.2, unseen 3, missed 4.
         assertTrue(hits.toList().toString(), hits[1] / 5.0 > 4 * (hits[0] / 10.0))
         assertTrue(hits.toList().toString(), hits[2] / 5.0 > 4 * (hits[0] / 10.0))
         assertTrue(hits[0] > 0)

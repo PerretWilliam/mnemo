@@ -3,16 +3,25 @@ package com.perretwilliam.flashcards.lib
 import kotlin.math.pow
 import kotlin.random.Random
 
-// Picks the cards of a study session: random, but missed and never-seen cards come up more often.
+// Picks the cards of a study session with spaced repetition in mind: a card is "due" once its review
+// interval (which grows with each correct answer, so recall is tested just as it starts to fade) has elapsed.
+// Due and missed cards are favored; cards reviewed recently are rarely redrawn, but never excluded.
 
-/** `streak` = consecutive correct answers (0 right after a miss). A card without stats was never seen. */
-data class CardStat(val seen: Int, val streak: Int)
+/** `streak` = consecutive correct answers (0 right after a miss), `lastAt` = epoch ms of the last answer. */
+data class CardStat(val seen: Int, val streak: Int, val lastAt: Long = 0)
 
-/** Relative chance of being drawn. Mastered cards fade out (1, 1/2, 1/3...) but never reach zero. */
-fun cardWeight(stat: CardStat? = null): Double = when {
-    stat == null || stat.seen == 0 -> 3.0 // never studied
-    stat.streak == 0 -> 4.0 // missed last time
-    else -> 1.0 / stat.streak
+private const val DAY_MS = 86_400_000L
+
+/** Review interval in days after `streak` consecutive correct answers: expanding, as in Leitner boxes. */
+private val INTERVAL_DAYS = doubleArrayOf(0.0, 1.0, 3.0, 7.0, 16.0, 35.0, 75.0)
+
+/** Relative chance of being drawn: missed 4, never seen 3, due 2..5 (more overdue = higher), not yet due 0.1..1. */
+fun cardWeight(stat: CardStat? = null, now: Long = System.currentTimeMillis()): Double {
+    if (stat == null || stat.seen == 0) return 3.0
+    if (stat.streak == 0) return 4.0
+    val interval = INTERVAL_DAYS[minOf(stat.streak, INTERVAL_DAYS.lastIndex)] * DAY_MS
+    val ratio = (now - stat.lastAt) / interval // < 1: still remembered, >= 1: due
+    return if (ratio >= 1) 1 + minOf(ratio, 4.0) else 0.1 + 0.9 * maxOf(ratio, 0.0)
 }
 
 /** How many cards a session will hold: the chosen size, capped by what exists (0 = all). */
@@ -29,7 +38,8 @@ fun <C> drawCards(
     stats: Map<Long, CardStat>,
     size: Int,
     rng: () -> Double = { Random.nextDouble(1e-12, 1.0) }, // never exactly 0: 0^(1/w) would tie every card
+    now: Long = System.currentTimeMillis(),
 ): List<C> {
-    val sorted = cards.map { it to rng().pow(1 / cardWeight(stats[id(it)])) }.sortedByDescending { it.second }
+    val sorted = cards.map { it to rng().pow(1 / cardWeight(stats[id(it)], now)) }.sortedByDescending { it.second }
     return (if (size > 0) sorted.take(size) else sorted).map { it.first }
 }

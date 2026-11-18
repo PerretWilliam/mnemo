@@ -5,6 +5,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -69,6 +71,8 @@ import com.perretwilliam.flashcards.ui.Surface
 import com.perretwilliam.flashcards.ui.T
 import com.perretwilliam.flashcards.ui.TextVariant
 import com.perretwilliam.flashcards.ui.alpha
+import com.perretwilliam.flashcards.ui.confirm
+import com.perretwilliam.flashcards.ui.launchSafe
 import com.perretwilliam.flashcards.ui.deckColor
 import kotlin.math.abs
 import kotlin.math.sign
@@ -124,7 +128,7 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
         io {
             val endedAt = System.currentTimeMillis()
             for ((deckId, rs) in snapshot.groupBy { it.card.deckId }) {
-                Db.saveSession(deckId, startedAt, endedAt, rs.count { it.correct }, rs.count { !it.correct })
+                Db.saveSession(deckId, startedAt, endedAt, rs.map { it.card to it.correct })
             }
             Db.recordAnswers(snapshot.map { it.card.id to it.correct })
         }
@@ -147,7 +151,17 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
     DetailScreen(title, back, color, scroll = false) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             T("${results.size + 1} / ${cards.size}", variant = TextVariant.Label, color = color)
-            T(tr(R.string.session_swipeHint), variant = TextVariant.Caption)
+            Icon(
+                Ic.delete, tr(R.string.card_deleteTitle), tint = theme.textSecondary,
+                modifier = Modifier.size(32.dp).clickable {
+                    scope.launchSafe(tr) {
+                        if (confirm(tr(R.string.card_deleteTitle), tr(R.string.common_cannotUndo), tr(R.string.common_cancel), tr(R.string.common_delete))) {
+                            io { Db.deleteCard(card.id) }
+                            round = cards - card // the next card slides into this position
+                        }
+                    }
+                }.padding(Spacing.xs),
+            )
         }
         Box(Modifier.fillMaxWidth().height(6.dp).background(theme.muted, RoundedCornerShape(3.dp))) {
             Box(Modifier.fillMaxWidth(results.size / cards.size.toFloat()).fillMaxHeight().background(color, RoundedCornerShape(3.dp)))
@@ -207,7 +221,6 @@ private fun SwipeCard(card: Card, color: Color, flipped: Boolean, onFlip: () -> 
                     .border(1.5.dp, color.alpha(0.5f), shape).padding(Spacing.xl),
                 contentAlignment = Alignment.Center,
             ) {
-                Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().height(6.dp).background(color))
                 if (back) MathMarkdown(answerSource(card.front, card.back), center = true, fontSize = 18)
                 else {
                     MathMarkdown(if (isCloze(card.front)) renderCloze(card.front, false) else card.front, center = true, fontSize = 20)
