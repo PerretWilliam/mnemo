@@ -9,6 +9,7 @@ import kotlinx.serialization.json.put
 enum class CardTypes(val label: String) {
     QA("question/answer only"),
     CLOZE("cloze (fill in the blank) only"),
+    MCQ("multiple choice only"),
     BOTH("a mix of question/answer and cloze"),
 }
 
@@ -36,6 +37,10 @@ fun buildPrompt(o: PromptOptions): String {
                         put("front", "...")
                         put("back", "...")
                         put("tags", JsonArray(listOf(JsonPrimitive("..."))))
+                        if (o.types == CardTypes.MCQ) put("choices", buildJsonArray {
+                            add(buildJsonObject { put("text", "..."); put("correct", true) })
+                            add(buildJsonObject { put("text", "..."); put("correct", false) })
+                        })
                     })
                 })
             })
@@ -51,8 +56,12 @@ fun buildPrompt(o: PromptOptions): String {
         "- ${o.count} cards about: ${o.topic}. Language of the cards: ${o.language}.",
         "- Allowed card types: ${o.types.label}.",
     )
-    if (o.types != CardTypes.CLOZE) lines += "  - Question/answer: \"front\" = question, \"back\" = answer."
-    if (o.types != CardTypes.QA) {
+    if (o.types == CardTypes.MCQ) {
+        lines += "  - Multiple choice: \"front\" = question, \"choices\" = 3 to 5 options {\"text\", \"correct\"}, with plausible wrong options;"
+        lines += "    one or several options may be correct. \"back\" = short explanation of the answer (optional)."
+    }
+    if (o.types == CardTypes.QA || o.types == CardTypes.BOTH) lines += "  - Question/answer: \"front\" = question, \"back\" = answer."
+    if (o.types == CardTypes.CLOZE || o.types == CardTypes.BOTH) {
         lines += "  - Cloze: in \"front\", wrap every part to hide with {{c::...}}; \"back\" may be empty or hold a short explanation."
     }
     lines += "- \"front\" and \"back\" are Markdown. Math uses KaTeX LaTeX: \$...\$ inline, \$\$...\$\$ for blocks."

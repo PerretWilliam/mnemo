@@ -277,6 +277,7 @@ fun SettingsScreen(nav: NavHostController) {
     val context: Context = LocalContext.current
     val scope = rememberCoroutineScope()
     var size by remember { mutableIntStateOf(Prefs.sessionSize) }
+    var mcq by remember { mutableStateOf(Prefs.mcq) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launchSafe(tr) { importFromUri(context, tr, uri) }
     }
@@ -307,6 +308,11 @@ fun SettingsScreen(nav: NavHostController) {
                 { Prefs.sessionSize = it; size = it }, label = tr(R.string.settings_sessionSize),
             )
             T(tr(R.string.settings_sessionSizeHelp), variant = TextVariant.Caption)
+        }
+        Surface {
+            T(tr(R.string.mcq_title), variant = TextVariant.Heading)
+            T(tr(R.string.mcq_settingsHelp), variant = TextVariant.Caption)
+            McqOptions(mcq) { mcq = it; Prefs.mcq = it }
         }
         Surface {
             T(tr(R.string.settings_import), variant = TextVariant.Heading)

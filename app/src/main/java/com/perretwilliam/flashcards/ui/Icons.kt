@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.TrackChanges
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.UploadFile
 
@@ -52,6 +53,7 @@ object Ic {
     val streak = Icons.Filled.LocalFireDepartment
     val study = Icons.Filled.PlayArrow
     val success = Icons.Filled.TrackChanges
+    val tune = Icons.Filled.Tune
     val undo = Icons.Filled.Undo
     val wrong = Icons.Filled.Cancel
 }

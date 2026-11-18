@@ -35,6 +35,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -180,6 +182,26 @@ fun <V> Segmented(value: V, options: List<Pair<V, String>>, onChange: (V) -> Uni
                 contentAlignment = Alignment.Center,
             ) { T(label, variant = TextVariant.Label, color = if (active) theme.onPrimary else theme.textSecondary) }
         }
+    }
+}
+
+/** On/off row with an optional one-line explanation underneath. */
+@Composable
+fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit, hint: String? = null, enabled: Boolean = true) {
+    val theme = LocalTheme.current
+    LayoutRow(
+        Modifier.fillMaxWidth().clickable(enabled = enabled) { onChange(!checked) },
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            T(label, color = if (enabled) null else theme.textSecondary)
+            if (hint != null) T(hint, variant = TextVariant.Caption)
+        }
+        Switch(
+            checked, null, enabled = enabled,
+            colors = SwitchDefaults.colors(checkedTrackColor = theme.primary, checkedThumbColor = theme.onPrimary),
+        )
     }
 }
 

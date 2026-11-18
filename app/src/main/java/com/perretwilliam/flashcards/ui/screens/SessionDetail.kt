@@ -30,7 +30,10 @@ fun SessionDetailScreen(nav: NavHostController, id: Long) {
         if (cards.isEmpty()) Empty(tr(R.string.history_noDetails))
         val (correct, missed) = cards.partition { it.correct }
         if (missed.isNotEmpty()) T(tr(R.string.history_missedCards, "count" to missed.size), variant = TextVariant.Heading, color = theme.danger)
-        for (c in missed) ListRow(stripCloze(c.front), stripCloze(c.back))
+        for (c in missed) ListRow(
+            stripCloze(c.front),
+            if (c.picked != null) tr(R.string.mcq_pickedVsAnswer, "picked" to c.picked, "answer" to stripCloze(c.back)) else stripCloze(c.back),
+        )
         if (correct.isNotEmpty()) T(tr(R.string.history_correctCards, "count" to correct.size), variant = TextVariant.Heading, color = theme.success)
         for (c in correct) ListRow(stripCloze(c.front), stripCloze(c.back))
     }
