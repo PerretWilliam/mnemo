@@ -246,7 +246,7 @@ private fun formatDuration(ms: Long): String {
 }
 
 @Composable
-fun HistoryScreen() {
+fun HistoryScreen(nav: NavHostController) {
     val tr = LocalTr.current
     val theme = LocalTheme.current
     val locale = locale
@@ -262,6 +262,7 @@ fun HistoryScreen() {
                 subtitle = "${DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale).format(Date(s.endedAt))} · ${formatDuration(s.endedAt - s.startedAt)}",
                 right = "${s.correct}/$total · $pct%",
                 accent = theme.deckColor(s.folderColor),
+                onClick = { nav.navigate("session-detail/${s.id}") },
             )
         }
     }

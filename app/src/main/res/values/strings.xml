@@ -86,7 +86,6 @@
     <string name="editor_missingBack">Missing back</string>
     <string name="editor_missingBackText">Add an answer, or use {{c::...}} in the front to make a cloze card.</string>
     <string name="session_title">Study</string>
-    <string name="session_swipeHint">Swipe left: got it · right: missed</string>
     <string name="session_tapToFlip">Tap to flip</string>
     <string name="session_gotIt">Got it</string>
     <string name="session_missed">Missed</string>
@@ -97,6 +96,9 @@
     <string name="session_restart">New session</string>
     <string name="session_missedCards">Missed cards</string>
     <string name="history_title">History</string>
+    <string name="history_noDetails">No card details were saved for this session.</string>
+    <string name="history_missedCards">Missed ({count})</string>
+    <string name="history_correctCards">Correct ({count})</string>
     <string name="history_empty">No study sessions yet.</string>
     <string name="settings_title">Settings</string>
     <string name="settings_language">App language</string>

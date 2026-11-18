@@ -53,13 +53,15 @@ data class Session(
     override val wrong: Int,
 ) : SessionLike
 
+data class SessionCard(val front: String, val back: String, val correct: Boolean)
+
 /** How to handle an imported deck whose name already exists. */
 enum class ConflictChoice { MERGE, NEW, SKIP }
 
 data class ImportResult(val decks: Int, val cards: Int)
 
 /** Bump on schema changes and add a step to `migrate`; never edit an existing step. */
-private const val SCHEMA_VERSION = 3
+private const val SCHEMA_VERSION = 4
 
 private fun migrate(db: SQLiteDatabase, from: Int) {
     if (from < 1) {
@@ -104,6 +106,19 @@ private fun migrate(db: SQLiteDatabase, from: Int) {
                 last_at INTEGER NOT NULL
             )""",
         )
+    }
+    if (from < 4) {
+        // What was answered in each session, copied as text so the history stays readable after a card is edited or deleted.
+        db.execSQL(
+            """CREATE TABLE session_cards (
+                id INTEGER PRIMARY KEY NOT NULL,
+                session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+                front TEXT NOT NULL,
+                back TEXT NOT NULL,
+                correct INTEGER NOT NULL
+            )""",
+        )
+        db.execSQL("CREATE INDEX session_cards_session ON session_cards(session_id)")
     }
 }
 
@@ -262,7 +277,7 @@ object Db {
     // --- Sessions ---
 
     fun getCardStats(): Map<Long, CardStat> =
-        query("SELECT card_id, seen, streak FROM card_stats") { it.getLong(0) to CardStat(it.getInt(1), it.getInt(2)) }.toMap()
+        query("SELECT card_id, seen, streak, last_at FROM card_stats") { it.getLong(0) to CardStat(it.getInt(1), it.getInt(2), it.getLong(3)) }.toMap()
 
     /** Updates the stats of the answered cards (one write transaction): a miss resets the streak. */
     fun recordAnswers(answers: List<Pair<Long, Boolean>>) = write {
@@ -283,8 +298,22 @@ object Db {
         }
     }
 
-    fun saveSession(deckId: Long, startedAt: Long, endedAt: Long, correct: Int, wrong: Int) = write {
-        insert("sessions", "deck_id" to deckId, "started_at" to startedAt, "ended_at" to endedAt, "correct" to correct, "wrong" to wrong)
+    /** `answers` = (card, correct) in answer order; the card text is copied into the history. */
+    fun saveSession(deckId: Long, startedAt: Long, endedAt: Long, answers: List<Pair<Card, Boolean>>) = write {
+        transaction {
+            val id = insert(
+                "sessions", "deck_id" to deckId, "started_at" to startedAt, "ended_at" to endedAt,
+                "correct" to answers.count { it.second }, "wrong" to answers.count { !it.second },
+            )
+            for ((c, ok) in answers) insert("session_cards", "session_id" to id, "front" to c.front, "back" to c.back, "correct" to if (ok) 1 else 0)
+        }
+    }
+
+    fun getSession(id: Long): Session? = listSessions(-1).firstOrNull { it.id == id }
+
+    /** Answers of one session, in answer order. Empty for sessions saved before details were recorded. */
+    fun listSessionCards(sessionId: Long) = query("SELECT front, back, correct FROM session_cards WHERE session_id = ? ORDER BY id", sessionId) {
+        SessionCard(it.getString(0), it.getString(1), it.getInt(2) > 0)
     }
 
     /** Most recent first; a negative `limit` returns everything. */
@@ -358,7 +387,7 @@ object Db {
     }
 
     fun wipeAll() = write {
-        for (t in listOf("sessions", "card_stats", "cards", "decks", "folders")) exec("DELETE FROM $t")
+        for (t in listOf("session_cards", "sessions", "card_stats", "cards", "decks", "folders")) exec("DELETE FROM $t")
     }
 
     private fun now() = System.currentTimeMillis()

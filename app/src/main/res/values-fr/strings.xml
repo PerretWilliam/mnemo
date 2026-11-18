@@ -84,7 +84,6 @@
     <string name="editor_missingBack">Verso vide</string>
     <string name="editor_missingBackText">Ajoute une réponse, ou utilise {{c::...}} au recto pour faire un texte à trous.</string>
     <string name="session_title">Révision</string>
-    <string name="session_swipeHint">Gauche : je sais · droite : raté</string>
     <string name="session_tapToFlip">Touche pour retourner</string>
     <string name="session_gotIt">Je sais</string>
     <string name="session_missed">Raté</string>
@@ -95,6 +94,9 @@
     <string name="session_restart">Nouvelle session</string>
     <string name="session_missedCards">Cartes ratées</string>
     <string name="history_title">Historique</string>
+    <string name="history_noDetails">Aucun détail de carte n\'a été enregistré pour cette session.</string>
+    <string name="history_missedCards">Ratées ({count})</string>
+    <string name="history_correctCards">Réussies ({count})</string>
     <string name="history_empty">Aucune session pour l\'instant.</string>
     <string name="settings_title">Réglages</string>
     <string name="settings_language">Langue de l\'app</string>

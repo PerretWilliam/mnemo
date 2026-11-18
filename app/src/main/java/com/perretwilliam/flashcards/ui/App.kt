@@ -28,6 +28,7 @@ import com.perretwilliam.flashcards.ui.screens.FolderScreen
 import com.perretwilliam.flashcards.ui.screens.HistoryScreen
 import com.perretwilliam.flashcards.ui.screens.HomeScreen
 import com.perretwilliam.flashcards.ui.screens.SessionScreen
+import com.perretwilliam.flashcards.ui.screens.SessionDetailScreen
 import com.perretwilliam.flashcards.ui.screens.SettingsScreen
 
 private class Tab(val route: String, val label: Int, val icon: ImageVector)
@@ -78,7 +79,8 @@ fun App() {
         NavHost(nav, startDestination = "home", modifier = Modifier.padding(inner)) {
             composable("home") { HomeScreen(nav) }
             composable("decks") { DecksScreen(nav) }
-            composable("history") { HistoryScreen() }
+            composable("history") { HistoryScreen(nav) }
+            composable("session-detail/{id}", listOf(LongArg("id"))) { SessionDetailScreen(nav, it.arguments!!.getLong("id")) }
             composable("settings") { SettingsScreen(nav) }
             composable("deck/{id}", listOf(LongArg("id"))) { DeckScreen(nav, it.arguments!!.getLong("id")) }
             // "new" creates a folder; the id is a string for that reason.
