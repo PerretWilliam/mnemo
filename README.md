@@ -56,7 +56,9 @@ adb install -r app/build/outputs/apk/release/app-release.apk
 
 Every GitHub release also has the APK attached. Requires Android 8.0 (API 26) or newer.
 
-> The release APK is signed with the default debug key, fine for personal sideloading.
+> GitHub releases are signed with a fixed key (repository secrets `RELEASE_KEYSTORE_BASE64`,
+> `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`), so each APK updates the previous one.
+> Local builds use your debug key. Switching between differently signed APKs needs an uninstall first.
 > Publishing to the Play Store needs your own upload keystore.
 
 ## JSON format

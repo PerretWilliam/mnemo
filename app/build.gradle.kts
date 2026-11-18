@@ -22,13 +22,24 @@ android {
         androidResources.localeFilters += listOf("en", "fr", "es", "de")
     }
 
+    // CI signs releases with a fixed key (RELEASE_KEYSTORE env vars) so every APK can update the previous one.
+    // Without it (local builds) the debug key is used, which is the same key on this machine.
+    val releaseKeystore = System.getenv("RELEASE_KEYSTORE")
+    if (releaseKeystore != null) {
+        signingConfigs.create("release") {
+            storeFile = file(releaseKeystore)
+            storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            // Signed with the debug key: fine for personal sideloading (see README).
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 
