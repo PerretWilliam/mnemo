@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/PerretWilliam/mnemo/compare/v0.7.0...v0.8.0) (2026-11-18)
+
+
+### Features
+
+* spaced-repetition sampling, session detail in history, delete card while studying ([#25](https://github.com/PerretWilliam/mnemo/issues/25)) ([d0f83fc](https://github.com/PerretWilliam/mnemo/commit/d0f83fcacc4e0d359120643241d61080b2277ad0))
+
 ## [0.7.0](https://github.com/PerretWilliam/mnemo/compare/v0.6.0...v0.7.0) (2026-11-14)
 
 
