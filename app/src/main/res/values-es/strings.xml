@@ -184,18 +184,13 @@
     <string name="issue_repairedBackslashes">Se corrigieron {count} barras invertidas LaTeX sin escapar.</string>
     <string name="issue_restoredLatex">Se restauraron comandos LaTeX en {count} campo(s).</string>
     <string name="common_ok">OK</string>
-    <string name="study_modeCards">Tarjetas</string>
-    <string name="study_modeMcq">Test</string>
     <string name="study_options">Opciones de estudio</string>
     <string name="study_optionsRestart">Los cambios inician una nueva sesión.</string>
     <string name="mcq_title">Opción múltiple</string>
     <string name="mcq_settingsHelp">Se usan en el modo test. Elige el modo en la página de un mazo o carpeta, o durante una sesión.</string>
-    <string name="mcq_choices">Opciones por pregunta</string>
     <string name="mcq_timer">Tiempo por pregunta</string>
     <string name="mcq_timerOff">Sin límite</string>
     <string name="mcq_timerValue">{count} s</string>
-    <string name="mcq_generate">Preguntas desde tarjetas normales</string>
-    <string name="mcq_generateHint">Las respuestas incorrectas salen de las demás tarjetas del mazo o carpeta. Desactivado: solo se preguntan las tarjetas de opción múltiple.</string>
     <string name="mcq_shuffle">Mezclar las opciones</string>
     <string name="mcq_shuffleHint">Para las tarjetas de opción múltiple que escribiste. Las preguntas generadas siempre se mezclan.</string>
     <string name="mcq_instant">Ver el resultado al instante</string>
@@ -209,7 +204,6 @@
     <string name="mcq_next">Siguiente</string>
     <string name="mcq_timeUp">Se acabó el tiempo</string>
     <string name="mcq_explanation">Explicación</string>
-    <string name="mcq_noQuestions">No hay preguntas de opción múltiple. Escribe tarjetas de opción múltiple o permite preguntas desde tarjetas normales (hacen falta al menos 2 tarjetas).</string>
     <string name="mcq_pickedVsAnswer">Tú: {picked} · Respuesta: {answer}</string>
     <string name="card_mcqBadge">Test</string>
     <string name="editor_typeStandard">Estándar</string>

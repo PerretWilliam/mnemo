@@ -92,9 +92,8 @@ version.txt              single source of truth for the version (bumped by relea
   `drawCards` (`lib/Sampling.kt`) weights cards by their `card_stats` row, spaced-repetition style: missed,
   never-seen and overdue cards (interval grows with the correct streak) are drawn more often than recently
   reviewed ones. Stats and per-card answers (`session_cards`, shown read-only from History) are written when a session ends.
-- Two study modes (`StudyMode`, remembered in `Prefs`): flashcards, and MCQ. A card with `choices` is an authored
-  multiple-choice card (`back` = explanation); any other card can be asked too: `buildQuestion` (`lib/Mcq.kt`)
-  takes its answer as the right option and borrows wrong ones from the deck/folder, favoring same tags and similar length.
+- No study-mode switch: the card decides. A card with valid `choices` is an MCQ question (`buildQuestion` in `lib/Mcq.kt`,
+  `back` = explanation); any other card is a flashcard.
   All MCQ options live in `McqConfig` (`Prefs.mcq`); add a new one there, in `McqOptions` and in the strings.
   MCQ answers feed the same `card_stats` and history (`session_cards.picked` holds what was chosen).
 - Out of scope for now: multi-device sync, images.

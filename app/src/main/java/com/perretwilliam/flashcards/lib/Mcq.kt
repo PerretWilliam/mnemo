@@ -12,8 +12,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
-// Multiple-choice (MCQ) mode. A question comes from either a card written as multiple choice (`Card.choices`)
-// or any regular card: its answer is the right choice and the wrong ones are answers of other cards.
+// Multiple-choice (MCQ) cards: a card with valid `Card.choices` is asked as a question, any other card as a flashcard.
 
 const val MIN_CHOICES = 2
 const val MAX_CHOICES = 8
@@ -21,15 +20,8 @@ const val MAX_CHOICES = 8
 /** One option of an authored multiple-choice card. Several correct options make a "select all that apply" question. */
 data class Choice(val text: String, val correct: Boolean)
 
-/** Study modes: self-graded flashcards, or multiple choice. */
-enum class StudyMode { CARDS, MCQ }
-
 data class McqConfig(
-    /** Options per generated question (the right answer included). Authored cards keep all their own options. */
-    val choices: Int = 4,
-    /** Ask regular cards too, with wrong answers borrowed from the deck or folder. Off: only authored MCQ cards. */
-    val generate: Boolean = true,
-    /** Shuffle the options of authored cards (generated questions are always shuffled). */
+    /** Shuffle the options. */
     val shuffle: Boolean = true,
     /** Reveal right and wrong after each answer. Off: no feedback until the recap, like an exam. */
     val instant: Boolean = true,
@@ -41,7 +33,6 @@ data class McqConfig(
     val timerSec: Int = 0,
 )
 
-val MCQ_CHOICE_COUNTS = listOf(3, 4, 5, 6)
 val MCQ_TIMERS = listOf(0, 10, 20, 30, 60, 120)
 
 /** The card fields a question is built from, so this file doesn't depend on the data layer. */
@@ -65,37 +56,11 @@ fun List<Choice>.isValidMcq() = size in MIN_CHOICES..MAX_CHOICES && any { it.cor
 /** Short options render as plain text; anything with Markdown or math needs the (heavier) renderer. */
 fun isPlainText(s: String) = s.none { it in "$`*_\\<>\n" }
 
-/** What the card's answer is when asked as a generated question: the hidden parts of a cloze, else the back. */
-private fun answerOf(c: McqSource) = if (isCloze(c.front)) splitCloze(c.front).filter { it.cloze }.joinToString(" · ") { it.text.trim() } else c.back.trim()
-
-/**
- * Builds the question for [card], or null when it can't be asked (a regular card with generation off, or no
- * other answer to use as a wrong option). [pool] is every card that can lend a wrong answer.
- */
-fun buildQuestion(card: McqSource, pool: List<McqSource>, cfg: McqConfig, rng: () -> Double): McqQuestion? {
+/** The question of an MCQ card, or null for a regular card (studied as a flashcard). */
+fun buildQuestion(card: McqSource, cfg: McqConfig, rng: () -> Double): McqQuestion? =
     card.choices?.takeIf { it.isValidMcq() }?.let { options ->
-        return McqQuestion(card.id, card.front, if (cfg.shuffle) shuffled(options, rng) else options, card.back)
+        McqQuestion(card.id, card.front, if (cfg.shuffle) shuffled(options, rng) else options, card.back)
     }
-    if (!cfg.generate) return null
-    val answer = answerOf(card)
-    if (answer.isBlank()) return null
-
-    // Wrong options: distinct answers of other regular cards, favoring same tags and a similar length so they look plausible.
-    val candidates = pool.filter { it.id != card.id && it.choices == null }
-        .map { it to answerOf(it) }
-        .filter { (_, a) -> a.isNotBlank() && !a.equals(answer, ignoreCase = true) }
-        .distinctBy { it.second.lowercase() }
-    val weight = { c: Pair<McqSource, String> ->
-        val shared = c.first.tags.count { it in card.tags }
-        val similarity = minOf(c.second.length, answer.length).coerceAtLeast(1).toDouble() / maxOf(c.second.length, answer.length).coerceAtLeast(1)
-        1.0 + 2 * shared + 2 * similarity
-    }
-    val wrong = weightedSample(candidates, weight, cfg.choices - 1, rng)
-    if (wrong.isEmpty()) return null
-    val options = shuffled(listOf(Choice(answer, true)) + wrong.map { Choice(it.second, false) }, rng)
-    val prompt = if (isCloze(card.front)) renderCloze(card.front, false) else card.front
-    return McqQuestion(card.id, prompt, options, if (isCloze(card.front)) card.back else "")
-}
 
 private fun <T> shuffled(items: List<T>, rng: () -> Double) = weightedSample(items, { 1.0 }, items.size, rng)
 
