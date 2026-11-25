@@ -1,10 +1,21 @@
-# Mnemo
+<p align="center">
+  <img src="docs/logo.png" alt="Mnemo logo" width="120">
+</p>
+
+<h1 align="center">Mnemo</h1>
 
 [![CI](https://github.com/PerretWilliam/mnemo/actions/workflows/ci.yml/badge.svg)](https://github.com/PerretWilliam/mnemo/actions/workflows/ci.yml)
 
 **Mnemo** is an offline flashcard app, native Android (Kotlin + Jetpack Compose).
 Write cards in **Markdown with LaTeX math**, make **cloze** (fill-in-the-blank) cards, study them
 with **swipe gestures**, and let ChatGPT or Claude **generate whole decks** for you.
+
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Dashboard" width="23%">
+  <img src="docs/screenshots/decks.png" alt="Decks and folders" width="23%">
+  <img src="docs/screenshots/flashcard.png" alt="Flashcard" width="23%">
+  <img src="docs/screenshots/mcq.png" alt="Multiple-choice question" width="23%">
+</p>
 
 ## Features
 
@@ -15,6 +26,7 @@ with **swipe gestures**, and let ChatGPT or Claude **generate whole decks** for 
   undo, haptic feedback, and an end-of-session recap with "review missed". Sessions draw a
   limited number of cards (10-100, set in Settings) from a deck or a whole folder, favoring cards
   you missed or never studied.
+- **Multiple choice**: a card with `choices` is asked as a multiple-choice question (single or select-all, optional timer and explanation); every other card is a flashcard. No mode to pick.
 - **Import / export**: JSON files, paste from clipboard, share sheet; full backups include history.
   Import validates every card and lists errors by card number.
 - **AI generator**: fill in topic, deck name, count, card types, language and optional notes;
