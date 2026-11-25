@@ -54,9 +54,7 @@ One format for import, export and AI generation. Implemented in `app/src/main/ja
   folder. Files without these fields (older exports) import unchanged, as unfiled decks.
 - **Math**: `$...$` inline, `$$...$$` block (KaTeX). In JSON every backslash must be doubled:
   `"\\frac{1}{2}"`.
-- **Multiple choice**: any card without `choices` can still be asked in MCQ mode: the app uses its
-  answer (`back`, or the hidden text of a cloze) as the right option and borrows the wrong ones from
-  other cards of the deck or folder. Write `choices` yourself when the wrong options matter.
+- **Multiple choice**: the app picks the study style per card: a card with `choices` is asked as a multiple-choice question, any other card as a flashcard.
 - **Cloze**: `{{c::hidden text}}` in `front`. Braces inside are fine: `{{c::$\\frac{1}{x^{2}}$}}`.
 
 ## Validation and repair

@@ -244,53 +244,14 @@ class LibTest {
     private fun src(id: Long, front: String, back: String = "", tags: List<String> = emptyList(), choices: List<Choice>? = null) =
         McqSource(id, front, back, tags, choices)
 
-    private val pool = (1L..8L).map { src(it, "Q$it", "answer $it") }
-
-    @Test fun `mcq - generated question holds the answer once, distinct wrong answers from other cards`() {
-        val rng = seeded(7)
-        repeat(50) {
-            val q = buildQuestion(pool[0], pool, McqConfig(choices = 5), rng)!!
-            assertEquals(5, q.options.size)
-            assertEquals(listOf("answer 1"), q.options.filter { it.correct }.map { it.text })
-            assertEquals(5, q.options.map { it.text }.toSet().size)
-            assertTrue(q.options.all { it.text.startsWith("answer ") })
-            assertFalse(q.multi)
-        }
-    }
-
-    @Test fun `mcq - fewer wrong answers than asked shrinks the question, none means no question`() {
-        val two = pool.take(2)
-        assertEquals(2, buildQuestion(two[0], two, McqConfig(choices = 6), seeded(1))!!.options.size)
-        assertNull(buildQuestion(pool[0], pool.take(1), McqConfig(), seeded(1)))
-        // Same answer on both cards: nothing to borrow.
-        val same = listOf(src(1, "a", "x"), src(2, "b", "X"))
-        assertNull(buildQuestion(same[0], same, McqConfig(), seeded(1)))
-    }
-
-    @Test fun `mcq - generation can be switched off, authored cards still work`() {
+    @Test fun `mcq - only cards with valid choices become questions`() {
         val authored = src(9, "Which?", "because", choices = listOf(Choice("a", true), Choice("b", false), Choice("c", false)))
-        assertNull(buildQuestion(pool[0], pool, McqConfig(generate = false), seeded(1)))
-        val q = buildQuestion(authored, pool, McqConfig(generate = false, shuffle = false), seeded(1))!!
+        assertNull(buildQuestion(src(1, "Q", "A"), McqConfig(), seeded(1)))
+        assertNull(buildQuestion(src(2, "Q", "A", choices = listOf(Choice("a", false), Choice("b", false))), McqConfig(), seeded(1)))
+        val q = buildQuestion(authored, McqConfig(shuffle = false), seeded(1))!!
         assertEquals(listOf("a", "b", "c"), q.options.map { it.text })
         assertEquals("because", q.explanation)
-        assertEquals(listOf("a", "b", "c").toSet(), buildQuestion(authored, pool, McqConfig(shuffle = true), seeded(3))!!.options.map { it.text }.toSet())
-    }
-
-    @Test fun `mcq - cloze cards ask for the hidden text`() {
-        val cards = listOf(src(1, "A primitive of cos is {{c::sin}}.", "explained"), src(2, "The capital is {{c::Paris}}."), src(3, "e is {{c::2.71}}."))
-        val q = buildQuestion(cards[0], cards, McqConfig(choices = 3), seeded(5))!!
-        assertEquals(setOf("sin", "Paris", "2.71"), q.options.map { it.text }.toSet())
-        assertEquals("sin", q.answer)
-        assertFalse(q.prompt.contains("sin"))
-        assertEquals("explained", q.explanation)
-    }
-
-    @Test fun `mcq - wrong answers favor the same tags`() {
-        val tagged = listOf(src(1, "q", "red", listOf("color"))) + (2L..11L).map { src(it, "q", "word $it", if (it <= 3) listOf("color") else emptyList()) }
-        val rng = seeded(11)
-        var hits = 0
-        repeat(300) { hits += buildQuestion(tagged[0], tagged, McqConfig(choices = 2), rng)!!.options.count { !it.correct && it.text in setOf("word 2", "word 3") } }
-        assertTrue("same-tag answers picked $hits/300 times", hits > 300 * 0.27) // 2 of 10 candidates: 20% unweighted, ~33% with the tag bonus
+        assertEquals(listOf("a", "b", "c").toSet(), buildQuestion(authored, McqConfig(shuffle = true), seeded(3))!!.options.map { it.text }.toSet())
     }
 
     @Test fun `mcq - grading is all or nothing`() {

@@ -39,11 +39,9 @@ import androidx.compose.ui.unit.dp
 import com.perretwilliam.flashcards.LocalTr
 import com.perretwilliam.flashcards.R
 import com.perretwilliam.flashcards.data.Prefs
-import com.perretwilliam.flashcards.lib.MCQ_CHOICE_COUNTS
 import com.perretwilliam.flashcards.lib.MCQ_TIMERS
 import com.perretwilliam.flashcards.lib.McqConfig
 import com.perretwilliam.flashcards.lib.McqQuestion
-import com.perretwilliam.flashcards.lib.StudyMode
 import com.perretwilliam.flashcards.lib.gradeMcq
 import com.perretwilliam.flashcards.lib.isPlainText
 import com.perretwilliam.flashcards.lib.pickedText
@@ -64,24 +62,15 @@ import kotlinx.coroutines.delay
 
 private const val AUTO_NEXT_MS = 900L
 
-/** Flashcards | MCQ switch. */
-@Composable
-fun ModeSwitch(mode: StudyMode, onChange: (StudyMode) -> Unit) {
-    val tr = LocalTr.current
-    Segmented(mode, listOf(StudyMode.CARDS to tr(R.string.study_modeCards), StudyMode.MCQ to tr(R.string.study_modeMcq)), onChange)
-}
-
 /** Every multiple-choice setting. Stateless: the caller keeps the config and persists it. */
 @Composable
 fun McqOptions(cfg: McqConfig, onChange: (McqConfig) -> Unit) {
     val tr = LocalTr.current
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-        Select(cfg.choices, MCQ_CHOICE_COUNTS.map { it to it.toString() }, { onChange(cfg.copy(choices = it)) }, label = tr(R.string.mcq_choices))
         Select(
             cfg.timerSec, MCQ_TIMERS.map { it to if (it == 0) tr(R.string.mcq_timerOff) else tr(R.string.mcq_timerValue, "count" to it) },
             { onChange(cfg.copy(timerSec = it)) }, label = tr(R.string.mcq_timer),
         )
-        Toggle(tr(R.string.mcq_generate), cfg.generate, { onChange(cfg.copy(generate = it)) }, tr(R.string.mcq_generateHint))
         Toggle(tr(R.string.mcq_shuffle), cfg.shuffle, { onChange(cfg.copy(shuffle = it)) }, tr(R.string.mcq_shuffleHint))
         Toggle(tr(R.string.mcq_instant), cfg.instant, { onChange(cfg.copy(instant = it)) }, tr(R.string.mcq_instantHint))
         Toggle(tr(R.string.mcq_explain), cfg.explain, { onChange(cfg.copy(explain = it)) }, tr(R.string.mcq_explainHint), enabled = cfg.instant)
@@ -89,23 +78,21 @@ fun McqOptions(cfg: McqConfig, onChange: (McqConfig) -> Unit) {
     }
 }
 
-/** Mode and options, saved as they change. `onDismiss(changed)` tells the session whether it must restart. */
+/** MCQ options, saved as they change. `onDismiss(changed)` tells the session whether it must restart. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudyOptionsSheet(onDismiss: (changed: Boolean) -> Unit) {
     val tr = LocalTr.current
     val theme = LocalTheme.current
-    var mode by remember { mutableStateOf(Prefs.studyMode) }
     var cfg by remember { mutableStateOf(Prefs.mcq) }
-    val initial = remember { mode to cfg }
-    ModalBottomSheet(onDismissRequest = { onDismiss((mode to cfg) != initial) }, containerColor = theme.surface) {
+    val initial = remember { cfg }
+    ModalBottomSheet(onDismissRequest = { onDismiss(cfg != initial) }, containerColor = theme.surface) {
         Column(
             Modifier.verticalScroll(rememberScrollState()).padding(horizontal = Spacing.lg).padding(bottom = Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             T(tr(R.string.study_options), variant = TextVariant.Heading)
-            ModeSwitch(mode) { mode = it; Prefs.studyMode = it }
-            if (mode == StudyMode.MCQ) McqOptions(cfg) { cfg = it; Prefs.mcq = it }
+            McqOptions(cfg) { cfg = it; Prefs.mcq = it }
             T(tr(R.string.study_optionsRestart), variant = TextVariant.Caption)
         }
     }

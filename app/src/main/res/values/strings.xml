@@ -186,18 +186,13 @@
     <string name="issue_repairedBackslashes">Repaired {count} unescaped LaTeX backslash(es).</string>
     <string name="issue_restoredLatex">Restored LaTeX commands in {count} field(s).</string>
     <string name="common_ok">OK</string>
-    <string name="study_modeCards">Flashcards</string>
-    <string name="study_modeMcq">MCQ</string>
     <string name="study_options">Study options</string>
     <string name="study_optionsRestart">Changes start a new session.</string>
     <string name="mcq_title">Multiple choice</string>
     <string name="mcq_settingsHelp">Used in MCQ mode. Choose the mode on a deck or folder page, or during a session.</string>
-    <string name="mcq_choices">Choices per question</string>
     <string name="mcq_timer">Time per question</string>
     <string name="mcq_timerOff">No limit</string>
     <string name="mcq_timerValue">{count} s</string>
-    <string name="mcq_generate">Questions from regular cards</string>
-    <string name="mcq_generateHint">Wrong answers come from the other cards of the deck or folder. Off: only multiple-choice cards are asked.</string>
     <string name="mcq_shuffle">Shuffle choices</string>
     <string name="mcq_shuffleHint">For multiple-choice cards you wrote. Generated questions are always shuffled.</string>
     <string name="mcq_instant">Show the result right away</string>
@@ -211,7 +206,6 @@
     <string name="mcq_next">Next</string>
     <string name="mcq_timeUp">Time is up</string>
     <string name="mcq_explanation">Explanation</string>
-    <string name="mcq_noQuestions">No multiple-choice question available. Write multiple-choice cards, or allow questions from regular cards (it needs at least 2 cards).</string>
     <string name="mcq_pickedVsAnswer">You: {picked} · Answer: {answer}</string>
     <string name="card_mcqBadge">MCQ</string>
     <string name="editor_typeStandard">Standard</string>

@@ -54,7 +54,6 @@ import com.perretwilliam.flashcards.data.Prefs
 import com.perretwilliam.flashcards.data.io
 import com.perretwilliam.flashcards.lib.McqQuestion
 import com.perretwilliam.flashcards.lib.McqSource
-import com.perretwilliam.flashcards.lib.StudyMode
 import com.perretwilliam.flashcards.lib.answerSource
 import com.perretwilliam.flashcards.lib.buildQuestion
 import com.perretwilliam.flashcards.lib.drawCards
@@ -94,7 +93,7 @@ private fun Card.source() = McqSource(id, front, back, tags, choices)
 /** The cards a session draws from, and the whole deck or folder they were taken from (wrong answers come from there). */
 private class Pool(val cards: List<Card>, val all: List<Card>)
 
-/** Studies one deck, or a whole folder when [isFolder], as flashcards (swipe left = correct, right = missed) or multiple choice. */
+/** Studies one deck, or a whole folder when [isFolder], ; each card is a flashcard (swipe left = correct, right = missed) or a multiple-choice question, depending on its type. */
 @Composable
 fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
     val tr = LocalTr.current
@@ -107,7 +106,6 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
     val results = remember { mutableStateListOf<Result>() }
     var flipped by remember { mutableStateOf(false) }
     var startedAt by remember { mutableLongStateOf(0L) }
-    var mode by remember { mutableStateOf(Prefs.studyMode) }
     var mcq by remember { mutableStateOf(Prefs.mcq) }
     var questions by remember { mutableStateOf(emptyMap<Long, McqQuestion>()) }
     var pool by remember { mutableStateOf(emptyList<Card>()) }
@@ -116,20 +114,14 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
     // A fresh random sample (size from Settings); missed and never-seen cards are favored.
     suspend fun draw(): Pool = io {
         val all = if (isFolder) Db.listFolderCards(id) else Db.listCards(id)
-        // In MCQ mode only cards that can be asked take a slot: authored ones, or any card when generating (needs a second card to borrow from).
-        val askable = if (Prefs.studyMode == StudyMode.MCQ) all.filter { it.choices != null || (Prefs.mcq.generate && all.size > 1) } else all
-        Pool(drawCards(askable, { it.id }, Db.getCardStats(), Prefs.sessionSize), all)
+        Pool(drawCards(all, { it.id }, Db.getCardStats(), Prefs.sessionSize), all)
     }
     fun start(p: Pool) {
-        mode = Prefs.studyMode
         mcq = Prefs.mcq
         pool = p.all
-        val asked = if (mode == StudyMode.MCQ) {
-            val sources = p.all.map { it.source() }
-            p.cards.mapNotNull { c -> buildQuestion(c.source(), sources, mcq) { Random.nextDouble(1e-12, 1.0) }?.let { c to it } }
-        } else p.cards.map { it to null }
-        questions = asked.mapNotNull { (c, q) -> q?.let { c.id to it } }.toMap()
-        round = asked.map { it.first }
+        // A card with valid choices is asked as multiple choice, any other as a flashcard.
+        questions = p.cards.mapNotNull { c -> buildQuestion(c.source(), mcq) { Random.nextDouble(1e-12, 1.0) }?.let { c.id to it } }.toMap()
+        round = p.cards
         results.clear()
         flipped = false
         startedAt = System.currentTimeMillis()
@@ -146,11 +138,7 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
     val back = { nav.popBackStack(); Unit }
     if (cards == null) return DetailScreen(title, back, color) { Loading() }
     if (cards.isEmpty()) return DetailScreen(title, back, color) {
-        if (mode == StudyMode.MCQ) {
-            Empty(tr(R.string.mcq_noQuestions))
-            AppButton(tr(R.string.study_options), Ic.tune, { showOptions = true }, Modifier.fillMaxWidth(), ButtonVariant.Secondary)
-        } else Empty(tr(R.string.deck_noCards))
-        if (showOptions) StudyOptionsSheet { changed -> showOptions = false; if (changed) scope.launch { start(draw()) } }
+        Empty(tr(R.string.deck_noCards))
     }
 
     val finished = results.size == cards.size
@@ -203,7 +191,7 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
             Box(Modifier.fillMaxWidth(results.size / cards.size.toFloat()).fillMaxHeight().background(color, RoundedCornerShape(3.dp)))
         }
         val question = questions[card.id]
-        if (mode == StudyMode.MCQ && question != null) {
+        if (question != null) {
             androidx.compose.runtime.key(card.id, results.size) {
                 McqPlay(question, mcq, color, { ok, picked -> results.add(Result(card, ok, question.answer, picked)) }, Modifier.weight(1f))
             }
@@ -222,7 +210,7 @@ fun SessionScreen(nav: NavHostController, isFolder: Boolean, id: Long) {
             }
         }
     }
-    // Changing the mode or its options starts a fresh session with them.
+    // Changing the MCQ options starts a fresh session with them.
     if (showOptions) StudyOptionsSheet { changed -> showOptions = false; if (changed) scope.launch { start(draw()) } }
 }
 

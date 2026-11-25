@@ -82,7 +82,6 @@ fun DeckScreen(nav: NavHostController, id: Long) {
     val data by rememberQuery(id) { Triple(Db.getDeck(id), Db.listCards(id), Db.listFolders()) }
     var query by remember { mutableStateOf("") }
     var name by remember { mutableStateOf<String?>(null) }
-    var mode by remember { mutableStateOf(Prefs.studyMode) }
 
     val loaded = data
     if (loaded == null) return DetailScreen("", { nav.popBackStack() }) { Loading() }
@@ -106,7 +105,6 @@ fun DeckScreen(nav: NavHostController, id: Long) {
             { v -> scope.launchSafe(tr) { io { Db.setDeckFolder(id, v.takeIf { it >= 0 }) } } },
             label = tr(R.string.deck_folder),
         )
-        if (cards.isNotEmpty()) ModeSwitch(mode) { mode = it; Prefs.studyMode = it }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             AppButton(
                 tr(R.string.deck_study, "count" to sessionLength(cards.size, Prefs.sessionSize)), Ic.study, { nav.study(id) },
@@ -160,7 +158,6 @@ fun FolderScreen(nav: NavHostController, param: String) {
     val data by rememberQuery(param) { (if (isNew) null else Db.getFolder(id)) to nextFolderColor(Db.listFolders().map { it.color }) }
     var name by remember { mutableStateOf<String?>(null) }
     var color by remember { mutableStateOf<String?>(null) }
-    var mode by remember { mutableStateOf(Prefs.studyMode) }
 
     val loaded = data
     if (loaded == null) return DetailScreen("", { nav.popBackStack() }) { Loading() }
@@ -190,7 +187,6 @@ fun FolderScreen(nav: NavHostController, param: String) {
         }
         if (folder != null) {
             T(tr.plural(R.plurals.count_decks, folder.deckCount), variant = TextVariant.Caption)
-            if (folder.cardCount > 0) ModeSwitch(mode) { mode = it; Prefs.studyMode = it }
             AppButton(
                 tr(R.string.deck_study, "count" to sessionLength(folder.cardCount, Prefs.sessionSize)), Ic.study,
                 { nav.studyFolder(folder.id) }, Modifier.fillMaxWidth(), ButtonVariant.Secondary, enabled = folder.cardCount > 0,

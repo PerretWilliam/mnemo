@@ -184,18 +184,13 @@
     <string name="issue_repairedBackslashes">{count} nicht maskierte LaTeX-Backslash(es) repariert.</string>
     <string name="issue_restoredLatex">LaTeX-Befehle in {count} Feld(ern) wiederhergestellt.</string>
     <string name="common_ok">OK</string>
-    <string name="study_modeCards">Karten</string>
-    <string name="study_modeMcq">Quiz</string>
     <string name="study_options">Lernoptionen</string>
     <string name="study_optionsRestart">Änderungen starten eine neue Sitzung.</string>
     <string name="mcq_title">Multiple Choice</string>
     <string name="mcq_settingsHelp">Gelten im Quiz-Modus. Wähle den Modus auf der Seite eines Stapels oder Ordners oder während einer Sitzung.</string>
-    <string name="mcq_choices">Antworten pro Frage</string>
     <string name="mcq_timer">Zeit pro Frage</string>
     <string name="mcq_timerOff">Unbegrenzt</string>
     <string name="mcq_timerValue">{count} s</string>
-    <string name="mcq_generate">Fragen aus normalen Karten</string>
-    <string name="mcq_generateHint">Falsche Antworten stammen aus den anderen Karten des Stapels oder Ordners. Aus: Nur Multiple-Choice-Karten werden gefragt.</string>
     <string name="mcq_shuffle">Antworten mischen</string>
     <string name="mcq_shuffleHint">Für Multiple-Choice-Karten, die du selbst geschrieben hast. Erzeugte Fragen werden immer gemischt.</string>
     <string name="mcq_instant">Ergebnis sofort anzeigen</string>
@@ -209,7 +204,6 @@
     <string name="mcq_next">Weiter</string>
     <string name="mcq_timeUp">Zeit abgelaufen</string>
     <string name="mcq_explanation">Erklärung</string>
-    <string name="mcq_noQuestions">Keine Multiple-Choice-Frage verfügbar. Schreibe Multiple-Choice-Karten oder erlaube Fragen aus normalen Karten (mindestens 2 Karten nötig).</string>
     <string name="mcq_pickedVsAnswer">Du: {picked} · Antwort: {answer}</string>
     <string name="card_mcqBadge">MC</string>
     <string name="editor_typeStandard">Standard</string>
