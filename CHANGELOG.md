@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/PerretWilliam/mnemo/compare/v0.9.0...v0.9.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* pick flashcard or MCQ automatically from each card ([#30](https://github.com/PerretWilliam/mnemo/issues/30)) ([678d5fa](https://github.com/PerretWilliam/mnemo/commit/678d5fae5a65b550726b3b9028c8597defe3f2d2))
+
 ## [0.9.0](https://github.com/PerretWilliam/mnemo/compare/v0.8.0...v0.9.0) (2026-11-18)
 
 
